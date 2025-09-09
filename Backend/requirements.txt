@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-multipart
+aiofiles
+pillow
+imagehash
+exifread
+opencv-python-headless
+numpy
+sqlalchemy
+alembic
+requests
+python-dotenv
