@@ -11,3 +11,8 @@ sqlalchemy
 alembic
 requests
 python-dotenv
+torch
+torchvision
+timm
+albumentations
+

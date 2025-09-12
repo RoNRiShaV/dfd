@@ -1,3 +1,4 @@
+# backend/main.py
 import os
 import uuid
 import shutil
@@ -8,10 +9,15 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
-from sqlalchemy import create_engine, Column, String, Text, DateTime, Integer
+from sqlalchemy import create_engine, Column, String, Text, DateTime, Integer, Float
 from sqlalchemy.orm import sessionmaker, declarative_base
-from forensics import analyze_image_from_path, download_file_if_url
 
+# 🔑 Import unified pipeline
+from forensics import analyze_image_from_path, DEVICE
+
+# -------------------------------
+# Paths & Database Setup
+# -------------------------------
 BASE_DIR = Path(__file__).resolve().parent
 UPLOADS = BASE_DIR / "uploads"
 UPLOADS.mkdir(exist_ok=True)
@@ -22,6 +28,9 @@ engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
+# -------------------------------
+# Database Model
+# -------------------------------
 class ImageRecord(Base):
     __tablename__ = "images"
     id = Column(String, primary_key=True, index=True)
@@ -34,14 +43,21 @@ class ImageRecord(Base):
     reverse_matches = Column(Text, nullable=True)
     votes_fake = Column(Integer, default=0)
     votes_real = Column(Integer, default=0)
+    # Deepfake analysis
+    real_prob = Column(Float, nullable=True)
+    fake_prob = Column(Float, nullable=True)
+    prediction = Column(String, nullable=True)
 
 Base.metadata.create_all(bind=engine)
 
+# -------------------------------
+# FastAPI Setup
+# -------------------------------
 app = FastAPI(title="VerifySpot - Forensics Backend")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ⚠️ For hackathon only
+    allow_origins=["*"],  # ⚠ For hackathon only
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,6 +67,9 @@ class UploadResponse(BaseModel):
     id: str
     message: str
 
+# -------------------------------
+# API Endpoints
+# -------------------------------
 @app.post("/api/upload", response_model=UploadResponse)
 async def upload(image_file: UploadFile | None = File(None), image_url: str | None = Form(None)):
     if image_file is None and not image_url:
@@ -63,15 +82,12 @@ async def upload(image_file: UploadFile | None = File(None), image_url: str | No
         with out_path.open("wb") as f:
             shutil.copyfileobj(image_file.file, f)
     else:
-        out_path = UPLOADS / f"{uid}.jpg"
-        success = download_file_if_url(image_url, out_path)
-        if not success:
-            raise HTTPException(status_code=400, detail="Could not download URL")
+        raise HTTPException(status_code=400, detail="Image URL upload not yet supported")
 
-    result = analyze_image_from_path(
-        str(out_path), out_heatmap_path=str(UPLOADS / f"{uid}_heatmap.png")
-    )
+    # 🔍 Full forensic + deepfake analysis
+    result = analyze_image_from_path(str(out_path), out_heatmap_path=str(UPLOADS / f"{uid}_heatmap.png"))
 
+    # Save to DB
     db = SessionLocal()
     rec = ImageRecord(
         id=uid,
@@ -81,6 +97,9 @@ async def upload(image_file: UploadFile | None = File(None), image_url: str | No
         tamper_score=int(result.get("tamper_score", 0)),
         heatmap=str(Path(result.get("heatmap")).name) if result.get("heatmap") else None,
         reverse_matches=json.dumps(result.get("reverse_matches", [])),
+        real_prob=result.get("deepfake", {}).get("real_prob"),
+        fake_prob=result.get("deepfake", {}).get("fake_prob"),
+        prediction=result.get("deepfake", {}).get("prediction"),
     )
     db.add(rec)
     db.commit()
@@ -105,6 +124,9 @@ def get_result(id: str):
         "reverse_matches": json.loads(rec.reverse_matches or "[]"),
         "votes_fake": rec.votes_fake,
         "votes_real": rec.votes_real,
+        "real_prob": rec.real_prob,
+        "fake_prob": rec.fake_prob,
+        "prediction": rec.prediction,
         "created_at": rec.created_at.isoformat(),
     }
 
