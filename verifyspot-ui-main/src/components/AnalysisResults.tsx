@@ -1,22 +1,54 @@
-import { Camera, Calendar, MapPin, AlertTriangle, Eye, EyeOff, Hash } from "lucide-react";
+import { Camera, Calendar, MapPin, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
 
-const AnalysisResults = ({ data }: { data?: any }) => {
-  const [showHeatmap, setShowHeatmap] = useState(false);
+interface ReverseMatch {
+  source: string;
+  similarity?: string;
+  date?: string;
+}
 
+interface AnalysisData {
+  filename?: string;
+  heatmap_url?: string;
+  exif?: Record<string, string>;
+  tamper_score?: number;
+  reverse_matches?: ReverseMatch[];
+  label?: string;
+  authenticity?: number; // 0-100
+  real_prob?: number;
+  fake_prob?: number;
+}
+
+const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
   if (!data) {
     return (
-      <div className="p-8 text-center text-muted-foreground">
+      <div className="text-center py-20 text-muted-foreground">
         No analysis data available.
       </div>
     );
   }
 
+  const backendBase = "http://localhost:8000";
+
+  const imageUrl = data.filename
+    ? `${backendBase}/api/uploads/${data.filename}`
+    : undefined;
+
+  const heatmapUrl = data.heatmap_url
+    ? data.heatmap_url.startsWith("http")
+      ? data.heatmap_url
+      : `${backendBase}${data.heatmap_url}`
+    : undefined;
+
   const tamperScore = data.tamper_score ?? 0;
+  const exif = data.exif ?? {};
+  const reverseMatches = data.reverse_matches ?? [];
+
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
   return (
     <div className="container mx-auto px-6 py-12">
@@ -39,31 +71,21 @@ const AnalysisResults = ({ data }: { data?: any }) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
-              {data.exif && Object.entries(data.exif).length > 0 ? (
-                Object.entries(data.exif).map(([key, value]) => (
+              {Object.entries(exif).length > 0 ? (
+                Object.entries(exif).map(([key, value]) => (
                   <div key={key} className="flex justify-between">
                     <span className="text-sm text-muted-foreground">{key}</span>
                     <span className="text-sm font-medium">{String(value)}</span>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-muted-foreground">No EXIF metadata found.</p>
+                <p className="text-sm text-muted-foreground">No EXIF metadata available</p>
               )}
             </div>
-            {data.phash && (
-              <div className="flex justify-between pt-3 border-t border-border">
-                <span className="text-sm text-muted-foreground flex items-center">
-                  <Hash className="w-3 h-3 mr-1" /> pHash
-                </span>
-                <span className="text-sm font-medium">{data.phash}</span>
-              </div>
-            )}
             <div className="pt-4 border-t border-border">
               <Badge variant="outline" className="border-success text-success">
                 <MapPin className="w-3 h-3 mr-1" />
-                {data.exif && Object.keys(data.exif).length > 0
-                  ? "Metadata Extracted"
-                  : "No Metadata"}
+                {Object.entries(exif).length > 0 ? "Metadata Intact" : "No Metadata"}
               </Badge>
             </div>
           </CardContent>
@@ -95,9 +117,11 @@ const AnalysisResults = ({ data }: { data?: any }) => {
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center flex-col">
-                <span className="text-3xl font-bold text-warning">{tamperScore}%</span>
+                <span className="text-3xl font-bold text-warning">
+                  {Math.round(data.authenticity ?? 0)}%
+                </span>
                 <span className="text-xs text-muted-foreground">
-                  {tamperScore > 70 ? "Suspicious" : "Likely Genuine"}
+                  {(data.authenticity ?? 0) > 70 ? "Likely Genuine" : "Suspicious"}
                 </span>
               </div>
             </div>
@@ -109,36 +133,44 @@ const AnalysisResults = ({ data }: { data?: any }) => {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Image Preview</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowHeatmap(!showHeatmap)}
-                className="border-accent-strong text-accent-strong hover:bg-accent"
-              >
-                {showHeatmap ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
-                {showHeatmap ? "Hide" : "Show"} Heatmap
-              </Button>
+              {heatmapUrl && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowHeatmap(!showHeatmap)}
+                  className="border-accent-strong text-accent-strong hover:bg-accent"
+                >
+                  {showHeatmap ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
+                  {showHeatmap ? "Hide" : "Show"} Heatmap
+                </Button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="relative rounded-lg overflow-hidden">
-              <img 
-                src={data.image_url} 
-                alt="Uploaded content"
-                className="w-full h-48 object-cover"
-              />
-              {showHeatmap && data.heatmap_url && (
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt="Uploaded content"
+                  className="w-full h-48 object-cover"
+                />
+              ) : (
+                <div className="w-full h-48 bg-muted flex items-center justify-center text-sm text-muted-foreground">
+                  No Image Available
+                </div>
+              )}
+              {showHeatmap && heatmapUrl && (
                 <div
                   className="absolute inset-0 bg-cover bg-center opacity-60 mix-blend-multiply"
-                  style={{ backgroundImage: `url(${data.heatmap_url})` }}
-                />
+                  style={{ backgroundImage: `url(${heatmapUrl})` }}
+                ></div>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Deepfake Analysis */}
+      {/* Deepfake Analysis (simple display) */}
       <Card className="mt-6 shadow-card hover:shadow-hover transition-smooth">
         <CardHeader>
           <CardTitle>Deepfake Detection</CardTitle>
@@ -146,18 +178,11 @@ const AnalysisResults = ({ data }: { data?: any }) => {
         <CardContent>
           {data.real_prob != null && data.fake_prob != null ? (
             <div>
-              <p>
-                Prediction:{" "}
-                <span className="font-semibold capitalize">{data.prediction}</span>
-              </p>
-              <p className="text-sm mt-2">
-                Real Probability: {(data.real_prob * 100).toFixed(2)}%
-              </p>
-              <Progress value={data.real_prob * 100} className="mb-2" />
-              <p className="text-sm">
-                Fake Probability: {(data.fake_prob * 100).toFixed(2)}%
-              </p>
-              <Progress value={data.fake_prob * 100} />
+              <p>Prediction: <span className="font-semibold">{data.label}</span></p>
+              <p className="text-sm mt-2">Real Probability: {(data.real_prob * 100).toFixed(2)}%</p>
+              <Progress value={(data.real_prob ?? 0) * 100} className="mb-2" />
+              <p className="text-sm">Fake Probability: {(data.fake_prob * 100).toFixed(2)}%</p>
+              <Progress value={(data.fake_prob ?? 0) * 100} />
             </div>
           ) : (
             <p className="text-muted-foreground">Deepfake analysis not available.</p>
@@ -166,22 +191,19 @@ const AnalysisResults = ({ data }: { data?: any }) => {
       </Card>
 
       {/* Reverse Search Results */}
-      <Card className="mt-6 shadow-card hover:shadow-hover transition-smooth">
-        <CardHeader>
-          <CardTitle>Reverse Image Search Results</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data.reverse_matches && data.reverse_matches.length > 0 ? (
+      {reverseMatches.length > 0 && (
+        <Card className="mt-6 shadow-card hover:shadow-hover transition-smooth">
+          <CardHeader>
+            <CardTitle>Reverse Image Search Results</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="grid md:grid-cols-3 gap-4">
-              {data.reverse_matches.map((result: any, index: number) => (
-                <div
-                  key={index}
-                  className="border border-border rounded-lg p-4 hover:bg-accent/20 transition-smooth"
-                >
+              {reverseMatches.map((result, index) => (
+                <div key={index} className="border border-border rounded-lg p-4 hover:bg-accent/20 transition-smooth">
                   <div className="aspect-video bg-muted rounded mb-3"></div>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="font-medium">{result.source ?? "Unknown"}</span>
+                      <span className="font-medium">{result.source}</span>
                       {result.similarity && (
                         <Badge variant="outline" className="border-success text-success">
                           {result.similarity}
@@ -198,11 +220,9 @@ const AnalysisResults = ({ data }: { data?: any }) => {
                 </div>
               ))}
             </div>
-          ) : (
-            <p className="text-muted-foreground">No reverse matches found.</p>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

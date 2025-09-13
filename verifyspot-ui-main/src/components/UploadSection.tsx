@@ -39,7 +39,8 @@ const UploadSection = () => {
   const uploadFile = async (file: File) => {
     try {
       const formData = new FormData();
-      formData.append("image_file", file);
+      // FastAPI expects field name "file"
+      formData.append("file", file);
 
       const response = await fetch("http://localhost:8000/api/upload", {
         method: "POST",
@@ -47,14 +48,21 @@ const UploadSection = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.statusText}`);
+        const text = await response.text();
+        throw new Error(`Server error: ${response.status} ${text}`);
       }
 
       const result = await response.json();
       console.log("Analysis result:", result);
 
-      // ✅ Navigate to /results/:id with result.id
-      navigate(`/results/${result.id}`);
+      // Navigate to results page using the filename id returned by backend
+      // backend returns { id: "<filename>", filename: "<filename>", ... }
+      const idToNavigate = result.id || result.filename;
+      if (!idToNavigate) {
+        console.warn("Upload returned no id/filename — staying on page.");
+        return;
+      }
+      navigate(`/results/${idToNavigate}`);
     } catch (err) {
       console.error("Upload failed:", err);
     }

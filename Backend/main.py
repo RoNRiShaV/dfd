@@ -1,163 +1,203 @@
 # backend/main.py
 import os
 import uuid
-import shutil
 import json
 from pathlib import Path
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
-from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from datetime import datetime
-from sqlalchemy import create_engine, Column, String, Text, DateTime, Integer, Float
-from sqlalchemy.orm import sessionmaker, declarative_base
 
-# 🔑 Import unified pipeline
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+# Use unified pipeline from forensics.py (model lives & loads there)
 from forensics import analyze_image_from_path, DEVICE
 
 # -------------------------------
-# Paths & Database Setup
+# Config / paths
 # -------------------------------
 BASE_DIR = Path(__file__).resolve().parent
-UPLOADS = BASE_DIR / "uploads"
-UPLOADS.mkdir(exist_ok=True)
-DB_PATH = BASE_DIR / "forensics.db"
-DATABASE_URL = f"sqlite:///{DB_PATH}"
+UPLOAD_DIR = BASE_DIR / "uploads"
+LOG_FILE = BASE_DIR / "analysis_log.json"
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(bind=engine)
-Base = declarative_base()
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+if not LOG_FILE.exists():
+    LOG_FILE.write_text("[]", encoding="utf-8")
 
 # -------------------------------
-# Database Model
+# FastAPI setup
 # -------------------------------
-class ImageRecord(Base):
-    __tablename__ = "images"
-    id = Column(String, primary_key=True, index=True)
-    filename = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    phash = Column(String, nullable=True)
-    exif = Column(Text, nullable=True)
-    tamper_score = Column(Integer, nullable=True)
-    heatmap = Column(String, nullable=True)
-    reverse_matches = Column(Text, nullable=True)
-    votes_fake = Column(Integer, default=0)
-    votes_real = Column(Integer, default=0)
-    # Deepfake analysis
-    real_prob = Column(Float, nullable=True)
-    fake_prob = Column(Float, nullable=True)
-    prediction = Column(String, nullable=True)
-
-Base.metadata.create_all(bind=engine)
-
-# -------------------------------
-# FastAPI Setup
-# -------------------------------
-app = FastAPI(title="VerifySpot - Forensics Backend")
+app = FastAPI(title="DeepFake Detection API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ⚠ For hackathon only
+    allow_origins=["*"],  # For local dev/hackathon only — lock this down in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-class UploadResponse(BaseModel):
-    id: str
-    message: str
+# Serve uploaded images under /api/uploads/<filename>
+app.mount("/api/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
 # -------------------------------
-# API Endpoints
+# Helpers
 # -------------------------------
-@app.post("/api/upload", response_model=UploadResponse)
-async def upload(image_file: UploadFile | None = File(None), image_url: str | None = Form(None)):
-    if image_file is None and not image_url:
-        raise HTTPException(status_code=400, detail="Provide file or image_url")
+def _read_log():
+    text = LOG_FILE.read_text(encoding="utf-8") or "[]"
+    try:
+        return json.loads(text)
+    except Exception:
+        return []
 
-    uid = uuid.uuid4().hex
-    if image_file:
-        ext = Path(image_file.filename).suffix or ".jpg"
-        out_path = UPLOADS / f"{uid}{ext}"
+def _write_log(logs):
+    LOG_FILE.write_text(json.dumps(logs, indent=2), encoding="utf-8")
+
+def append_log(entry: dict):
+    logs = _read_log()
+    logs.append(entry)
+    _write_log(logs)
+
+def find_log_entry(file_id: str):
+    logs = _read_log()
+    for entry in reversed(logs):
+        if entry.get("id") == file_id or entry.get("filename") == file_id:
+            return entry
+    return None
+
+def save_upload_file(upload_file: UploadFile, dest: Path) -> Path:
+    """
+    Save UploadFile to dest and return path.
+    Accepts synchronous file.file.read() (UploadFile.file is SpooledTemporaryFile).
+    """
+    ext = Path(upload_file.filename).suffix or ".jpg"
+    filename = f"{uuid.uuid4().hex}{ext}"
+    out_path = dest / filename
+    try:
         with out_path.open("wb") as f:
-            shutil.copyfileobj(image_file.file, f)
-    else:
-        raise HTTPException(status_code=400, detail="Image URL upload not yet supported")
+            upload_file.file.seek(0)
+            while True:
+                chunk = upload_file.file.read(1024 * 1024)
+                if not chunk:
+                    break
+                f.write(chunk)
+    finally:
+        try:
+            upload_file.file.close()
+        except Exception:
+            pass
+    return out_path
 
-    # 🔍 Full forensic + deepfake analysis
-    result = analyze_image_from_path(str(out_path), out_heatmap_path=str(UPLOADS / f"{uid}_heatmap.png"))
+# -------------------------------
+# Routes
+# -------------------------------
+@app.post("/api/upload")
+async def upload(file: UploadFile = File(...)):
+    """
+    Upload endpoint.
+    Accepts multipart/form-data with file field named 'file'.
+    Returns: { id, filename, file_url, label, authenticity, real_prob, fake_prob }
+    """
+    # basic validation
+    filename_lower = (file.filename or "").lower()
+    if not filename_lower.endswith((".png", ".jpg", ".jpeg")):
+        raise HTTPException(status_code=400, detail="Invalid image type. Accepts .png/.jpg/.jpeg")
 
-    # Save to DB
-    db = SessionLocal()
-    rec = ImageRecord(
-        id=uid,
-        filename=str(out_path.name),
-        phash=result.get("phash"),
-        exif=json.dumps(result.get("exif", {})),
-        tamper_score=int(result.get("tamper_score", 0)),
-        heatmap=str(Path(result.get("heatmap")).name) if result.get("heatmap") else None,
-        reverse_matches=json.dumps(result.get("reverse_matches", [])),
-        real_prob=result.get("deepfake", {}).get("real_prob"),
-        fake_prob=result.get("deepfake", {}).get("fake_prob"),
-        prediction=result.get("deepfake", {}).get("prediction"),
-    )
-    db.add(rec)
-    db.commit()
-    db.close()
+    # Save file
+    try:
+        saved_path = save_upload_file(file, UPLOAD_DIR)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Could not save uploaded file: {e}")
 
-    return {"id": uid, "message": "Uploaded and analyzed"}
+    # Run unified analysis pipeline
+    heatmap_out = UPLOAD_DIR / f"{saved_path.stem}_heatmap.png"
+    try:
+        result = analyze_image_from_path(str(saved_path), out_heatmap_path=str(heatmap_out))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Forensics pipeline error: {e}")
 
-@app.get("/api/result/{id}")
-def get_result(id: str):
-    db = SessionLocal()
-    rec = db.query(ImageRecord).filter(ImageRecord.id == id).first()
-    db.close()
-    if not rec:
-        raise HTTPException(status_code=404, detail="Not found")
-    return {
-        "id": rec.id,
-        "filename": rec.filename,
-        "phash": rec.phash,
-        "exif": json.loads(rec.exif or "{}"),
-        "tamper_score": rec.tamper_score,
-        "heatmap_url": f"/api/uploads/{rec.heatmap}" if rec.heatmap else None,
-        "reverse_matches": json.loads(rec.reverse_matches or "[]"),
-        "votes_fake": rec.votes_fake,
-        "votes_real": rec.votes_real,
-        "real_prob": rec.real_prob,
-        "fake_prob": rec.fake_prob,
-        "prediction": rec.prediction,
-        "created_at": rec.created_at.isoformat(),
+    # Extract deepfake results
+    deepfake = result.get("deepfake") or {}
+    real_prob = deepfake.get("real_prob")
+    fake_prob = deepfake.get("fake_prob")
+    authenticity = deepfake.get("authenticity_score")
+    prediction = deepfake.get("prediction")
+
+    try:
+        real_prob = float(real_prob) if real_prob is not None else None
+        fake_prob = float(fake_prob) if fake_prob is not None else None
+        authenticity = float(authenticity) if authenticity is not None else None
+    except Exception:
+        real_prob, fake_prob, authenticity = None, None, None
+
+    # Build entry for log
+    entry = {
+        "id": saved_path.name,
+        "timestamp": datetime.utcnow().isoformat(),
+        "filename": saved_path.name,
+        "file_url": f"/api/uploads/{saved_path.name}",
+        "phash": result.get("phash"),
+        "exif": result.get("exif") or {},
+        "tamper_score": result.get("tamper_score"),
+        "heatmap_url": f"/api/uploads/{Path(result.get('heatmap')).name}" if result.get("heatmap") else None,
+        "reverse_matches": result.get("reverse_matches", []),
+        "label": prediction,
+        "authenticity": authenticity,
+        "real_prob": real_prob,
+        "fake_prob": fake_prob,
+        "prediction": prediction,
+        "votes_fake": 0,
+        "votes_real": 0,
     }
 
-@app.post("/api/vote")
-def vote(payload: dict):
-    img_id = payload.get("id")
-    v = payload.get("vote")
-    if not img_id or v not in ("fake", "real"):
-        raise HTTPException(status_code=400, detail="Bad payload")
+    # Persist log
+    try:
+        append_log(entry)
+    except Exception as e:
+        return JSONResponse(
+            status_code=200,
+            content={
+                "id": entry["id"],
+                "filename": entry["filename"],
+                "file_url": entry["file_url"],
+                "label": entry["label"],
+                "authenticity": entry["authenticity"],
+                "real_prob": entry["real_prob"],
+                "fake_prob": entry["fake_prob"],
+                "warning": f"Could not append to log: {e}"
+            },
+        )
 
-    db = SessionLocal()
-    rec = db.query(ImageRecord).filter(ImageRecord.id == img_id).first()
-    if not rec:
-        db.close()
-        raise HTTPException(status_code=404, detail="Not found")
+    return JSONResponse({
+        "id": entry["id"],
+        "filename": entry["filename"],
+        "file_url": entry["file_url"],
+        "label": entry["label"],
+        "authenticity": entry["authenticity"],
+        "real_prob": entry["real_prob"],
+        "fake_prob": entry["fake_prob"]
+    })
 
-    if v == "fake":
-        rec.votes_fake += 1
-    else:
-        rec.votes_real += 1
-    db.commit()
-    db.close()
-    return {"status": "ok"}
+@app.get("/api/result/{file_id}")
+async def get_result(file_id: str):
+    """
+    Return the stored analysis for `file_id`.
+    """
+    entry = find_log_entry(file_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Result not found")
+    return entry
 
 @app.get("/api/uploads/{filename}")
-def serve_upload(filename: str):
-    path = UPLOADS / filename
+async def serve_upload(filename: str):
+    """
+    Serve uploaded file. (StaticFiles mount already serves it; this is a fallback.)
+    """
+    path = UPLOAD_DIR / filename
     if not path.exists():
-        raise HTTPException(status_code=404)
+        raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(path)
 
 @app.get("/api/health")
-def health():
-    return {"status": "ok"}
+async def health():
+    return {"status": "ok", "device": DEVICE}

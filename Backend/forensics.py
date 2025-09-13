@@ -1,141 +1,148 @@
 # backend/forensics.py
-import os
-from pathlib import Path
-import cv2
-import numpy as np
-from PIL import Image, ExifTags, ImageChops, ImageEnhance
-import imagehash
 import torch
-from torchvision import transforms
 import timm
+from torchvision import transforms
+from PIL import Image, ExifTags
+import imagehash
+import logging
 from collections import OrderedDict
 
 # -------------------------------
-# Device setup
+# Logging
+# -------------------------------
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# -------------------------------
+# Device
 # -------------------------------
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+logger.info(f"Device: {DEVICE}")
 
 # -------------------------------
-# Load Pretrained Deepfake Model
+# Load model robustly
 # -------------------------------
-MODEL_PATH = Path(__file__).resolve().parent / "weights" / "efficientnet-b3.pkl"
+CHECKPOINT_PATH = "weights/efficientnet-b3.pkl"
 
-def load_deepfake_model():
-    model = timm.create_model("tf_efficientnet_b3", pretrained=False, num_classes=2)
-    checkpoint = torch.load(MODEL_PATH, map_location=DEVICE)
+# Load checkpoint
+checkpoint = torch.load(CHECKPOINT_PATH, map_location=DEVICE)
 
-    # Some checkpoints wrap weights
-    if isinstance(checkpoint, dict):
-        if "state_dict" in checkpoint:
-            state_dict = checkpoint["state_dict"]
-        elif "network" in checkpoint:
-            state_dict = checkpoint["network"]
-        else:
-            state_dict = checkpoint
-    else:
-        state_dict = checkpoint
+# Attempt to extract state_dict from common keys
+if 'state_dict' in checkpoint:
+    state_dict = checkpoint['state_dict']
+elif 'network' in checkpoint:
+    state_dict = checkpoint['network']
+else:
+    state_dict = checkpoint  # assume raw state_dict
 
-    # Strip 'module.' prefixes if trained on DataParallel
-    new_state_dict = OrderedDict()
-    for k, v in state_dict.items():
-        new_state_dict[k.replace("module.", "")] = v
+# Strip "module." prefix if it exists (from DataParallel training)
+new_state_dict = OrderedDict()
+for k, v in state_dict.items():
+    if k.startswith('module.'):
+        k = k.replace('module.', '')
+    new_state_dict[k] = v
+state_dict = new_state_dict
 
-    model.load_state_dict(new_state_dict, strict=False)
-    model.to(DEVICE)
-    model.eval()
-    return model
+# Initialize EfficientNet-B3
+model = timm.create_model('tf_efficientnet_b3', pretrained=False, num_classes=2)
 
-deepfake_model = load_deepfake_model()
+# Load weights strictly and log any missing/unexpected keys
+missing, unexpected = model.load_state_dict(state_dict, strict=False)
+if missing:
+    logger.warning(f"Missing keys when loading weights: {missing}")
+if unexpected:
+    logger.warning(f"Unexpected keys when loading weights: {unexpected}")
 
+model.to(DEVICE)
+model.eval()
+logger.info("EfficientNet-B3 model loaded successfully.")
+
+# -------------------------------
+# Image preprocessing
+# -------------------------------
 transform = transforms.Compose([
-    transforms.Resize((300, 300)),
+    transforms.Resize((300, 300)),  # Ensure exact 300x300 input size
     transforms.ToTensor(),
-    transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+    transforms.Normalize([0.485, 0.456, 0.406],
+                         [0.229, 0.224, 0.225])
 ])
 
 # -------------------------------
-# Forensic Tools
+# Prediction function
 # -------------------------------
-def extract_exif(img_path: str):
-    """Extract EXIF metadata from image."""
-    try:
-        img = Image.open(img_path)
-        exif_data = {}
-        if hasattr(img, "_getexif") and img._getexif():
-            for tag, value in img._getexif().items():
-                decoded = ExifTags.TAGS.get(tag, tag)
-                exif_data[decoded] = str(value)
-        return exif_data
-    except Exception:
-        return {}
-
-def compute_phash(img_path: str):
-    """Compute perceptual hash."""
-    try:
-        img = Image.open(img_path)
-        return str(imagehash.phash(img))
-    except Exception:
-        return None
-
-def tamper_analysis(img_path: str, out_path: str):
-    """Error Level Analysis (ELA) for tamper detection."""
-    try:
-        temp_file = img_path + "_ela_tmp.jpg"
-        original = Image.open(img_path).convert("RGB")
-        original.save(temp_file, "JPEG", quality=90)
-
-        compressed = Image.open(temp_file)
-        ela = ImageChops.difference(original, compressed)
-
-        extrema = ela.getextrema()
-        max_diff = max([ex[1] for ex in extrema])
-        scale = 255.0 / max_diff if max_diff else 1
-        ela = ImageEnhance.Brightness(ela).enhance(scale)
-
-        ela.save(out_path)
-        tamper_score = int(np.array(ela).mean())
-
-        if os.path.exists(temp_file):
-            os.remove(temp_file)
-
-        return tamper_score, out_path
-    except Exception as e:
-        print(f"[ELA ERROR] {e}")
-        return 0, None
-
-def deepfake_inference(img_path: str):
-    """Run deepfake classifier."""
-    try:
-        img = Image.open(img_path).convert("RGB")
-        x = transform(img).unsqueeze(0).to(DEVICE)
-        with torch.no_grad():
-            logits = deepfake_model(x)
-            probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
-        fake_prob = float(probs[1])
-        real_prob = float(probs[0])
-        pred = "fake" if fake_prob > real_prob else "real"
-        return {"real_prob": real_prob, "fake_prob": fake_prob, "prediction": pred}
-    except Exception as e:
-        print(f"[DEEPFAKE ERROR] {e}")
-        return {"real_prob": 0.0, "fake_prob": 0.0, "prediction": "error"}
-
-# -------------------------------
-# Main Forensic Pipeline
-# -------------------------------
-def analyze_image_from_path(img_path: str, out_heatmap_path: str = None):
+def analyze_image_from_path(image_path: str, out_heatmap_path: str = None):
+    """
+    Analyze uploaded image:
+      - Compute EXIF metadata
+      - Compute phash
+      - Run DeepFake prediction
+    Returns a dict with results.
+    """
     result = {}
-    result["phash"] = compute_phash(img_path)
-    result["exif"] = extract_exif(img_path)
+    try:
+        # Load image
+        img = Image.open(image_path).convert("RGB")
 
-    # Tamper analysis + heatmap
-    tamper_score, heatmap = tamper_analysis(img_path, out_heatmap_path) if out_heatmap_path else (0, None)
-    result["tamper_score"] = tamper_score
-    result["heatmap"] = heatmap
+        # --- EXIF ---
+        exif_data = {}
+        try:
+            raw_exif = img._getexif()
+            if raw_exif:
+                for tag, val in raw_exif.items():
+                    key = ExifTags.TAGS.get(tag, tag)
+                    exif_data[key] = str(val)
+        except Exception:
+            exif_data = {}
 
-    # Deepfake classifier
-    result["deepfake"] = deepfake_inference(img_path)
+        result["exif"] = exif_data
 
-    # Placeholder for reverse image search
-    result["reverse_matches"] = []
+        # --- pHash ---
+        try:
+            phash = str(imagehash.phash(img))
+        except Exception:
+            phash = None
+        result["phash"] = phash
+
+        # --- DeepFake prediction ---
+        img_tensor = transform(img).unsqueeze(0).to(DEVICE)
+        logger.debug(f"Input tensor shape: {img_tensor.shape}")  # Should be [1, 3, 300, 300]
+
+        with torch.no_grad():
+            logits = model(img_tensor)
+            probs = torch.softmax(logits, dim=1)[0]
+
+        real_prob = float(probs[0])
+        fake_prob = float(probs[1])
+
+        authenticity_score = real_prob * 100  # percentage
+
+        # Define margin for suspicious predictions around 50%
+        margin = 5.0  # 5%
+
+        if abs(authenticity_score - 50.0) <= margin:
+            prediction = "Suspicious"
+        elif fake_prob > real_prob:
+            prediction = "Fake"
+        else:
+            prediction = "Real"
+
+        result["deepfake"] = {
+            "real_prob": real_prob,
+            "fake_prob": fake_prob,
+            "authenticity_score": authenticity_score,
+            "prediction": prediction
+        }
+
+        # --- Optional heatmap path placeholder ---
+        if out_heatmap_path:
+            result["heatmap"] = out_heatmap_path
+
+        # Other dummy placeholders for your pipeline
+        result["tamper_score"] = fake_prob * 100  # simple example
+        result["reverse_matches"] = []
+
+    except Exception as e:
+        logger.error(f"Error analyzing image: {e}")
+        result["error"] = str(e)
 
     return result

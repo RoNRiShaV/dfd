@@ -18,7 +18,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/upload" element={<UploadSection />} /> {/* Add this */}
+          <Route path="/upload" element={<UploadSection />} />
           <Route path="/results/:id" element={<Result />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
