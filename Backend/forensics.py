@@ -22,9 +22,9 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 logger.info(f"Device: {DEVICE}")
 
 # -------------------------------
-# Load model robustly
+# Load model
 # -------------------------------
-CHECKPOINT_PATH = "weights/efficientnet_b3_deepfake.pth"  # ✅ trained model path
+CHECKPOINT_PATH = "weights/efficientnet_b3_deepfake.pth"
 
 checkpoint = torch.load(CHECKPOINT_PATH, map_location=DEVICE)
 
@@ -125,8 +125,9 @@ def analyze_image_from_path(image_path: str, out_heatmap_path: str = None):
         # --- Heatmap (Grad-CAM) ---
         if out_heatmap_path:
             try:
+                # Use last conv layer of EfficientNet
                 target_layers = [model.blocks[-1]]
-                cam = GradCAM(model=model, target_layers=target_layers, use_cuda=(DEVICE == "cuda"))
+                cam = GradCAM(model=model, target_layers=target_layers)
 
                 rgb_img = np.array(img.resize((300, 300))) / 255.0
                 input_tensor = transform(img).unsqueeze(0).to(DEVICE)

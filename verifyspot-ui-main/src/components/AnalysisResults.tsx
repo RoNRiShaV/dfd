@@ -1,9 +1,17 @@
-import { Camera, Calendar, MapPin, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Camera,
+  Calendar,
+  AlertTriangle,
+  Eye,
+  EyeOff,
+  ThumbsUp,
+  ThumbsDown,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { useState } from "react";
 
 interface ReverseMatch {
   source: string;
@@ -12,6 +20,7 @@ interface ReverseMatch {
 }
 
 interface AnalysisData {
+  id?: string; // backend id
   filename?: string;
   image_url?: string;
   heatmap_url?: string;
@@ -24,6 +33,12 @@ interface AnalysisData {
   fake_prob?: number;
 }
 
+interface VoteData {
+  votes_real: number;
+  votes_fake: number;
+  total: number;
+}
+
 const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
   if (!data) {
     return (
@@ -33,16 +48,59 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
     );
   }
 
+  const backendBase = "http://localhost:8000"; // ✅ ensure backend base is consistent
+
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [votes, setVotes] = useState<VoteData>({
+    votes_real: 0,
+    votes_fake: 0,
+    total: 0,
+  });
 
   const exif = data.exif ?? {};
   const reverseMatches = data.reverse_matches ?? [];
+
+  // Fetch current votes
+  useEffect(() => {
+    if (!data?.id) return;
+    fetch(`${backendBase}/api/votes/${data.id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Votes fetch failed");
+        return res.json();
+      })
+      .then((json) => setVotes(json))
+      .catch((err) => console.error("Votes fetch error:", err));
+  }, [data?.id]);
+
+  // Submit vote
+  const handleVote = async (type: "real" | "fake") => {
+    if (!data?.id) return;
+    try {
+      const res = await fetch(`${backendBase}/api/vote/${data.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vote: type }),
+      });
+      if (!res.ok) throw new Error("Vote failed");
+      const updated = await res.json();
+      setVotes(updated);
+    } catch (err) {
+      console.error("Vote error:", err);
+    }
+  };
+
+  const realPercent =
+    votes.total > 0 ? (votes.votes_real / votes.total) * 100 : 0;
+  const fakePercent =
+    votes.total > 0 ? (votes.votes_fake / votes.total) * 100 : 0;
 
   return (
     <div className="container mx-auto px-6 py-12">
       {/* Title */}
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-foreground mb-4">Analysis Results</h2>
+        <h2 className="text-3xl font-bold text-foreground mb-4">
+          Analysis Results
+        </h2>
         <p className="text-muted-foreground">
           Comprehensive forensic analysis of your uploaded content
         </p>
@@ -66,7 +124,9 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground">No EXIF metadata available</p>
+              <p className="text-sm text-muted-foreground">
+                No EXIF metadata available
+              </p>
             )}
           </CardContent>
         </Card>
@@ -81,7 +141,10 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
           </CardHeader>
           <CardContent className="text-center">
             <div className="relative w-32 h-32 mx-auto">
-              <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 36 36">
+              <svg
+                className="w-32 h-32 transform -rotate-90"
+                viewBox="0 0 36 36"
+              >
                 <path
                   d="m18,2.0845 a15.9155,15.9155 0 0,1 0,31.831a15.9155,15.9155 0 0,1 0,-31.831"
                   fill="none"
@@ -101,7 +164,9 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
                   {Math.round(data.authenticity ?? 0)}%
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {(data.authenticity ?? 0) > 70 ? "Likely Genuine" : "Suspicious"}
+                  {(data.authenticity ?? 0) > 70
+                    ? "Likely Genuine"
+                    : "Suspicious"}
                 </span>
               </div>
             </div>
@@ -119,7 +184,11 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
                   size="sm"
                   onClick={() => setShowHeatmap(!showHeatmap)}
                 >
-                  {showHeatmap ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
+                  {showHeatmap ? (
+                    <EyeOff className="w-4 h-4 mr-1" />
+                  ) : (
+                    <Eye className="w-4 h-4 mr-1" />
+                  )}
                   {showHeatmap ? "Hide" : "Show"} Heatmap
                 </Button>
               )}
@@ -158,14 +227,22 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
         <CardContent>
           {data.real_prob != null && data.fake_prob != null ? (
             <div>
-              <p>Prediction: <strong>{data.prediction}</strong></p>
-              <p className="text-sm mt-2">Real Probability: {(data.real_prob * 100).toFixed(2)}%</p>
+              <p>
+                Prediction: <strong>{data.prediction}</strong>
+              </p>
+              <p className="text-sm mt-2">
+                Real Probability: {(data.real_prob * 100).toFixed(2)}%
+              </p>
               <Progress value={(data.real_prob ?? 0) * 100} className="mb-2" />
-              <p className="text-sm">Fake Probability: {(data.fake_prob * 100).toFixed(2)}%</p>
+              <p className="text-sm">
+                Fake Probability: {(data.fake_prob * 100).toFixed(2)}%
+              </p>
               <Progress value={(data.fake_prob ?? 0) * 100} />
             </div>
           ) : (
-            <p className="text-muted-foreground">Deepfake analysis not available.</p>
+            <p className="text-muted-foreground">
+              Deepfake analysis not available.
+            </p>
           )}
         </CardContent>
       </Card>
@@ -181,9 +258,7 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
               {reverseMatches.map((result, i) => (
                 <div key={i} className="border rounded p-4">
                   <p className="font-medium">{result.source}</p>
-                  {result.similarity && (
-                    <Badge>{result.similarity}</Badge>
-                  )}
+                  {result.similarity && <Badge>{result.similarity}</Badge>}
                   {result.date && (
                     <p className="text-xs text-muted-foreground flex items-center">
                       <Calendar className="w-3 h-3 mr-1" />
@@ -196,6 +271,33 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
           </CardContent>
         </Card>
       )}
+
+      {/* Community Voting */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Community Voting</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex space-x-4 mb-4">
+            <Button variant="outline" onClick={() => handleVote("real")}>
+              <ThumbsUp className="w-4 h-4 mr-2" /> Real
+            </Button>
+            <Button variant="outline" onClick={() => handleVote("fake")}>
+              <ThumbsDown className="w-4 h-4 mr-2" /> Fake
+            </Button>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm">
+              Community thinks this image is Real: {realPercent.toFixed(1)}%
+            </p>
+            <Progress value={realPercent} className="mb-2" />
+            <p className="text-sm">
+              Community thinks this image is Fake: {fakePercent.toFixed(1)}%
+            </p>
+            <Progress value={fakePercent} />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Body
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -17,9 +17,11 @@ from forensics import analyze_image_from_path, DEVICE
 # -------------------------------
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE_DIR / "uploads"
+HEATMAP_DIR = UPLOAD_DIR / "heatmaps"   # ✅ dedicated heatmap folder
 LOG_FILE = BASE_DIR / "analysis_log.json"
 
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+HEATMAP_DIR.mkdir(parents=True, exist_ok=True)
 if not LOG_FILE.exists():
     LOG_FILE.write_text("[]", encoding="utf-8")
 
@@ -36,7 +38,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Serve static files
 app.mount("/api/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+app.mount("/api/heatmaps", StaticFiles(directory=str(HEATMAP_DIR)), name="heatmaps")
 
 # -------------------------------
 # Helpers
@@ -52,6 +56,17 @@ def _write_log(logs):
 
 def append_log(entry: dict):
     logs = _read_log()
+    logs.append(entry)
+    _write_log(logs)
+
+def update_log(entry: dict):
+    logs = _read_log()
+    for i, e in enumerate(logs):
+        if e.get("id") == entry["id"]:
+            logs[i] = entry
+            _write_log(logs)
+            return
+    # if not found, append
     logs.append(entry)
     _write_log(logs)
 
@@ -95,7 +110,8 @@ async def upload(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Save error: {e}")
 
-    heatmap_out = UPLOAD_DIR / f"{saved_path.stem}_heatmap.png"
+    # ✅ save heatmap in heatmaps/ folder
+    heatmap_out = HEATMAP_DIR / f"{saved_path.stem}_heatmap.png"
     try:
         result = analyze_image_from_path(str(saved_path), out_heatmap_path=str(heatmap_out))
     except Exception as e:
@@ -115,7 +131,7 @@ async def upload(file: UploadFile = File(...)):
         "phash": result.get("phash"),
         "exif": result.get("exif") or {},
         "tamper_score": result.get("tamper_score"),
-        "heatmap_url": f"/api/uploads/{Path(result.get('heatmap')).name}" if result.get("heatmap") else None,
+        "heatmap_url": f"/api/heatmaps/{heatmap_out.name}" if heatmap_out.exists() else None,
         "reverse_matches": result.get("reverse_matches", []),
         "label": prediction,
         "authenticity": authenticity,
@@ -149,11 +165,57 @@ async def get_result(file_id: str):
         raise HTTPException(status_code=404, detail="Result not found")
     return entry
 
+# -------------------------------
+# ✅ Community Voting
+# -------------------------------
+@app.post("/api/vote/{file_id}")
+async def vote(file_id: str, vote: str = Body(..., embed=True)):
+    entry = find_log_entry(file_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    if vote == "real":
+        entry["votes_real"] = entry.get("votes_real", 0) + 1
+    elif vote == "fake":
+        entry["votes_fake"] = entry.get("votes_fake", 0) + 1
+    else:
+        raise HTTPException(status_code=400, detail="Vote must be 'real' or 'fake'")
+
+    update_log(entry)
+
+    return {
+        "votes_real": entry["votes_real"],
+        "votes_fake": entry["votes_fake"],
+        "total": entry["votes_real"] + entry["votes_fake"],
+    }
+
+@app.get("/api/votes/{file_id}")
+async def get_votes(file_id: str):
+    entry = find_log_entry(file_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    return {
+        "votes_real": entry.get("votes_real", 0),
+        "votes_fake": entry.get("votes_fake", 0),
+        "total": entry.get("votes_real", 0) + entry.get("votes_fake", 0),
+    }
+
+# -------------------------------
+# Static serving
+# -------------------------------
 @app.get("/api/uploads/{filename}")
 async def serve_upload(filename: str):
     path = UPLOAD_DIR / filename
     if not path.exists():
         raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(path)
+
+@app.get("/api/heatmaps/{filename}")
+async def serve_heatmap(filename: str):
+    path = HEATMAP_DIR / filename
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Heatmap not found")
     return FileResponse(path)
 
 @app.get("/api/health")
