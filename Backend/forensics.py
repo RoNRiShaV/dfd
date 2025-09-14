@@ -5,6 +5,7 @@ from PIL import Image, ExifTags
 import imagehash
 import logging
 from collections import OrderedDict
+from pathlib import Path
 from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.image import show_cam_on_image
 import numpy as np
@@ -24,7 +25,8 @@ logger.info(f"Device: {DEVICE}")
 # -------------------------------
 # Load model
 # -------------------------------
-CHECKPOINT_PATH = "weights/efficientnet_b3_deepfake.pth"
+BASE_DIR = Path(__file__).resolve().parent
+CHECKPOINT_PATH = BASE_DIR / "weights" / "efficientnet_b3_deepfake.pth"
 
 checkpoint = torch.load(CHECKPOINT_PATH, map_location=DEVICE)
 
