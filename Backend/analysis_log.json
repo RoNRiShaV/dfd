@@ -851,5 +851,93 @@
     "prediction": "Fake",
     "votes_fake": 0,
     "votes_real": 0
+  },
+  {
+    "id": "d947d8e9a758470eb3ee4b8902a4daa2.jpg",
+    "timestamp": "2025-09-14T20:15:40.477565",
+    "filename": "d947d8e9a758470eb3ee4b8902a4daa2.jpg",
+    "file_url": "/api/uploads/d947d8e9a758470eb3ee4b8902a4daa2.jpg",
+    "phash": "8b89b586721b9a4f",
+    "exif": {
+      "XResolution": "300.0",
+      "YResolution": "300.0",
+      "ImageDescription": "beautiful girl typing a voice message on a smartphone artificial intelligence technology"
+    },
+    "tamper_score": 86.10587120056152,
+    "heatmap_url": "/api/heatmaps/d947d8e9a758470eb3ee4b8902a4daa2_heatmap.png",
+    "reverse_matches": [],
+    "label": "Fake",
+    "authenticity": 13.894125819206238,
+    "real_prob": 0.13894125819206238,
+    "fake_prob": 0.8610587120056152,
+    "prediction": "Fake",
+    "votes_fake": 0,
+    "votes_real": 0
+  },
+  {
+    "id": "112659d89fb64caeb05d1c611092981b.jpg",
+    "timestamp": "2025-09-14T20:17:13.021957",
+    "filename": "112659d89fb64caeb05d1c611092981b.jpg",
+    "file_url": "/api/uploads/112659d89fb64caeb05d1c611092981b.jpg",
+    "phash": "8b89b586721b9a4f",
+    "exif": {
+      "XResolution": "300.0",
+      "YResolution": "300.0",
+      "ImageDescription": "beautiful girl typing a voice message on a smartphone artificial intelligence technology"
+    },
+    "tamper_score": 86.10587120056152,
+    "heatmap_url": "/api/heatmaps/112659d89fb64caeb05d1c611092981b_heatmap.png",
+    "reverse_matches": [],
+    "label": "Fake",
+    "authenticity": 13.894125819206238,
+    "real_prob": 0.13894125819206238,
+    "fake_prob": 0.8610587120056152,
+    "prediction": "Fake",
+    "votes_fake": 1,
+    "votes_real": 0
+  },
+  {
+    "id": "bc7dbeaeea0a451688b9b032c702c394.jpg",
+    "timestamp": "2025-09-14T20:19:50.502019",
+    "filename": "bc7dbeaeea0a451688b9b032c702c394.jpg",
+    "file_url": "/api/uploads/bc7dbeaeea0a451688b9b032c702c394.jpg",
+    "phash": "acacc65a7c6b9838",
+    "exif": {
+      "XResolution": "300.0",
+      "YResolution": "300.0",
+      "ImageDescription": "A portrait of a human in an AI oxygen mask exploring virtual Universe and meta spaces. The futuristic digital world,?built on big data and algorithms, deep learning technologies, and trained neural networks. In the near future, concepts of entering the artificial intelligence era will manifest the tandem of the human race and responsible AI technologies. Sensitive personal data, authenticity vs. deepfake detection. AI inclusion."
+    },
+    "tamper_score": 99.98052716255188,
+    "heatmap_url": "/api/heatmaps/bc7dbeaeea0a451688b9b032c702c394_heatmap.png",
+    "reverse_matches": [],
+    "label": "Fake",
+    "authenticity": 0.01947977434610948,
+    "real_prob": 0.0001947977434610948,
+    "fake_prob": 0.9998052716255188,
+    "prediction": "Fake",
+    "votes_fake": 0,
+    "votes_real": 0
+  },
+  {
+    "id": "d5200885b18f4504ad9eae403e4e5053.jpg",
+    "timestamp": "2025-09-14T20:21:05.896699",
+    "filename": "d5200885b18f4504ad9eae403e4e5053.jpg",
+    "file_url": "/api/uploads/d5200885b18f4504ad9eae403e4e5053.jpg",
+    "phash": "8b89b586721b9a4f",
+    "exif": {
+      "XResolution": "300.0",
+      "YResolution": "300.0",
+      "ImageDescription": "beautiful girl typing a voice message on a smartphone artificial intelligence technology"
+    },
+    "tamper_score": 86.10587120056152,
+    "heatmap_url": "/api/heatmaps/d5200885b18f4504ad9eae403e4e5053_heatmap.png",
+    "reverse_matches": [],
+    "label": "Fake",
+    "authenticity": 13.894125819206238,
+    "real_prob": 0.13894125819206238,
+    "fake_prob": 0.8610587120056152,
+    "prediction": "Fake",
+    "votes_fake": 0,
+    "votes_real": 0
   }
 ]
