@@ -3,11 +3,15 @@ import uuid
 import json
 from pathlib import Path
 from datetime import datetime
+from typing import Dict
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Body
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+
+# Pillow for EXIF
+from PIL import Image, ExifTags
 
 # Import pipeline
 from forensics import analyze_image_from_path, DEVICE
@@ -96,6 +100,24 @@ def save_upload_file(upload_file: UploadFile, dest: Path) -> Path:
             pass
     return out_path
 
+def extract_exif(image_path: str) -> Dict[str, str]:
+    """
+    Extract EXIF metadata using Pillow.
+    Returns a dictionary of tag -> value.
+    """
+    try:
+        img = Image.open(image_path)
+        exif_data = img._getexif()
+        if not exif_data:
+            return {}
+        exif = {}
+        for tag, value in exif_data.items():
+            tag_name = ExifTags.TAGS.get(tag, tag)
+            exif[tag_name] = str(value)
+        return exif
+    except Exception:
+        return {}
+
 # -------------------------------
 # Routes
 # -------------------------------
@@ -117,6 +139,9 @@ async def upload(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Forensics error: {e}")
 
+    # ✅ extract EXIF metadata
+    exif_data = extract_exif(str(saved_path))
+
     deepfake = result.get("deepfake") or {}
     real_prob = deepfake.get("real_prob")
     fake_prob = deepfake.get("fake_prob")
@@ -129,7 +154,7 @@ async def upload(file: UploadFile = File(...)):
         "filename": saved_path.name,
         "file_url": f"/api/uploads/{saved_path.name}",
         "phash": result.get("phash"),
-        "exif": result.get("exif") or {},
+        "exif": exif_data,  # ✅ now filled
         "tamper_score": result.get("tamper_score"),
         "heatmap_url": f"/api/heatmaps/{heatmap_out.name}" if heatmap_out.exists() else None,
         "reverse_matches": result.get("reverse_matches", []),

@@ -573,5 +573,63 @@
     "prediction": "Fake",
     "votes_fake": 2,
     "votes_real": 1
+  },
+  {
+    "id": "c36683ec0408470b83440c43773f41b5.jpg",
+    "timestamp": "2025-09-14T14:49:07.564577",
+    "filename": "c36683ec0408470b83440c43773f41b5.jpg",
+    "file_url": "/api/uploads/c36683ec0408470b83440c43773f41b5.jpg",
+    "phash": "dc07b5701cf31c8e",
+    "exif": {},
+    "tamper_score": 84.13171172142029,
+    "heatmap_url": "/api/heatmaps/c36683ec0408470b83440c43773f41b5_heatmap.png",
+    "reverse_matches": [],
+    "label": "Fake",
+    "authenticity": 15.86829423904419,
+    "real_prob": 0.1586829423904419,
+    "fake_prob": 0.8413171172142029,
+    "prediction": "Fake",
+    "votes_fake": 0,
+    "votes_real": 0
+  },
+  {
+    "id": "46ef464ff10746228c81a52ecc775d27.jpg",
+    "timestamp": "2025-09-14T14:49:17.553439",
+    "filename": "46ef464ff10746228c81a52ecc775d27.jpg",
+    "file_url": "/api/uploads/46ef464ff10746228c81a52ecc775d27.jpg",
+    "phash": "acacc65a7c6b9838",
+    "exif": {},
+    "tamper_score": 99.98052716255188,
+    "heatmap_url": "/api/heatmaps/46ef464ff10746228c81a52ecc775d27_heatmap.png",
+    "reverse_matches": [],
+    "label": "Fake",
+    "authenticity": 0.01947977434610948,
+    "real_prob": 0.0001947977434610948,
+    "fake_prob": 0.9998052716255188,
+    "prediction": "Fake",
+    "votes_fake": 1,
+    "votes_real": 0
+  },
+  {
+    "id": "f26e0b7c910d43058038f54be1fa1f66.jpg",
+    "timestamp": "2025-09-14T14:53:48.464657",
+    "filename": "f26e0b7c910d43058038f54be1fa1f66.jpg",
+    "file_url": "/api/uploads/f26e0b7c910d43058038f54be1fa1f66.jpg",
+    "phash": "acacc65a7c6b9838",
+    "exif": {
+      "XResolution": "300.0",
+      "YResolution": "300.0",
+      "ImageDescription": "A portrait of a human in an AI oxygen mask exploring virtual Universe and meta spaces. The futuristic digital world,?built on big data and algorithms, deep learning technologies, and trained neural networks. In the near future, concepts of entering the artificial intelligence era will manifest the tandem of the human race and responsible AI technologies. Sensitive personal data, authenticity vs. deepfake detection. AI inclusion."
+    },
+    "tamper_score": 99.98052716255188,
+    "heatmap_url": "/api/heatmaps/f26e0b7c910d43058038f54be1fa1f66_heatmap.png",
+    "reverse_matches": [],
+    "label": "Fake",
+    "authenticity": 0.01947977434610948,
+    "real_prob": 0.0001947977434610948,
+    "fake_prob": 0.9998052716255188,
+    "prediction": "Fake",
+    "votes_fake": 1,
+    "votes_real": 0
   }
 ]
