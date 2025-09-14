@@ -31,7 +31,7 @@ const HistoryCarousel = () => {
   return (
     <div className="mt-12">
       <h2 className="text-2xl font-bold mb-4">Past Uploads & Community Votes</h2>
-      <div className="flex space-x-4 overflow-x-auto pb-4">
+      <div className="history-glass flex space-x-4 overflow-x-auto pb-4">
         {history.map((item) => {
           const total = (item.votes_real ?? 0) + (item.votes_fake ?? 0);
           const realPercent = total > 0 ? (item.votes_real! / total) * 100 : 0;
@@ -40,9 +40,9 @@ const HistoryCarousel = () => {
           return (
             <Card
               key={item.id}
-              className="min-w-[250px] max-w-[250px] flex-shrink-0 p-4"
+              className="history-card glass-hover min-w-[250px] max-w-[250px] flex-shrink-0 p-4"
             >
-              <div className="w-full h-32 overflow-hidden rounded mb-2">
+              <div className="w-full h-32 overflow-hidden rounded mb-2 glass-card-image">
                 <img
                   src={`${backendBase}${item.file_url}`}
                   alt="upload"
@@ -50,9 +50,7 @@ const HistoryCarousel = () => {
                 />
               </div>
               <p className="font-medium mb-1">{item.prediction}</p>
-              <p className="text-xs text-muted-foreground mb-1">
-                Votes: {total}
-              </p>
+              <p className="text-xs muted-on-dark mb-1">Votes: {total}</p>
               <p className="text-xs">Real: {realPercent.toFixed(1)}%</p>
               <Progress value={realPercent} className="mb-1" />
               <p className="text-xs">Fake: {fakePercent.toFixed(1)}%</p>

@@ -631,5 +631,27 @@
     "prediction": "Fake",
     "votes_fake": 1,
     "votes_real": 0
+  },
+  {
+    "id": "04f40f249411487c8633d8435752df78.jpg",
+    "timestamp": "2025-09-14T15:09:19.836121",
+    "filename": "04f40f249411487c8633d8435752df78.jpg",
+    "file_url": "/api/uploads/04f40f249411487c8633d8435752df78.jpg",
+    "phash": "acacc65a7c6b9838",
+    "exif": {
+      "XResolution": "300.0",
+      "YResolution": "300.0",
+      "ImageDescription": "A portrait of a human in an AI oxygen mask exploring virtual Universe and meta spaces. The futuristic digital world,?built on big data and algorithms, deep learning technologies, and trained neural networks. In the near future, concepts of entering the artificial intelligence era will manifest the tandem of the human race and responsible AI technologies. Sensitive personal data, authenticity vs. deepfake detection. AI inclusion."
+    },
+    "tamper_score": 99.98052716255188,
+    "heatmap_url": "/api/heatmaps/04f40f249411487c8633d8435752df78_heatmap.png",
+    "reverse_matches": [],
+    "label": "Fake",
+    "authenticity": 0.01947977434610948,
+    "real_prob": 0.0001947977434610948,
+    "fake_prob": 0.9998052716255188,
+    "prediction": "Fake",
+    "votes_fake": 0,
+    "votes_real": 0
   }
 ]
