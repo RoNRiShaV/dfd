@@ -41,7 +41,10 @@ const UploadSection = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("http://localhost:8000/api/upload", {
+      // ✅ use env variable instead of hardcoded localhost
+      const API = import.meta.env.VITE_API_URL;
+
+      const response = await fetch(`${API}/api/upload`, {
         method: "POST",
         body: formData,
       });
@@ -73,7 +76,8 @@ const UploadSection = () => {
             Upload Content for Analysis
           </h2>
           <p className="text-gray-200">
-            Upload an image or video, or paste a social media link to verify its authenticity
+            Upload an image or video, or paste a social media link to verify its
+            authenticity
           </p>
         </div>
 

@@ -33,7 +33,8 @@ const Result = () => {
     const fetchReport = async () => {
       setLoading(true);
       try {
-        const backendBase = "http://localhost:8000";
+        // ✅ Use environment variable instead of hardcoded localhost
+        const backendBase = import.meta.env.VITE_API_URL;
         const backendUrl = `${backendBase}/api/result/${id}`;
         const res = await fetch(backendUrl);
 
@@ -68,7 +69,9 @@ const Result = () => {
     <div className="min-h-screen bg-background">
       <ForensicsHeader />
       <main className="py-8">
-        {loading && <div className="container mx-auto px-6">Loading report...</div>}
+        {loading && (
+          <div className="container mx-auto px-6">Loading report...</div>
+        )}
         {!loading && report && <AnalysisResults data={report} />}
         {!loading && !report && (
           <div className="container mx-auto px-6">Report not found</div>
