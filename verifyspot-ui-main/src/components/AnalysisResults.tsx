@@ -13,12 +13,13 @@ interface ReverseMatch {
 
 interface AnalysisData {
   filename?: string;
+  image_url?: string;
   heatmap_url?: string;
   exif?: Record<string, string>;
   tamper_score?: number;
   reverse_matches?: ReverseMatch[];
-  label?: string;
-  authenticity?: number; // 0-100
+  prediction?: string;
+  authenticity?: number;
   real_prob?: number;
   fake_prob?: number;
 }
@@ -32,23 +33,10 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
     );
   }
 
-  const backendBase = "http://localhost:8000";
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
-  const imageUrl = data.filename
-    ? `${backendBase}/api/uploads/${data.filename}`
-    : undefined;
-
-  const heatmapUrl = data.heatmap_url
-    ? data.heatmap_url.startsWith("http")
-      ? data.heatmap_url
-      : `${backendBase}${data.heatmap_url}`
-    : undefined;
-
-  const tamperScore = data.tamper_score ?? 0;
   const exif = data.exif ?? {};
   const reverseMatches = data.reverse_matches ?? [];
-
-  const [showHeatmap, setShowHeatmap] = useState(false);
 
   return (
     <div className="container mx-auto px-6 py-12">
@@ -61,63 +49,55 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Metadata Card */}
-        <Card className="shadow-card hover:shadow-hover transition-smooth">
+        {/* Metadata */}
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Camera className="w-5 h-5 text-accent-strong" />
               <span>Metadata Analysis</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              {Object.entries(exif).length > 0 ? (
-                Object.entries(exif).map(([key, value]) => (
-                  <div key={key} className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">{key}</span>
-                    <span className="text-sm font-medium">{String(value)}</span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">No EXIF metadata available</p>
-              )}
-            </div>
-            <div className="pt-4 border-t border-border">
-              <Badge variant="outline" className="border-success text-success">
-                <MapPin className="w-3 h-3 mr-1" />
-                {Object.entries(exif).length > 0 ? "Metadata Intact" : "No Metadata"}
-              </Badge>
-            </div>
+          <CardContent>
+            {Object.entries(exif).length > 0 ? (
+              Object.entries(exif).map(([key, value]) => (
+                <div key={key} className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{key}</span>
+                  <span>{String(value)}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">No EXIF metadata available</p>
+            )}
           </CardContent>
         </Card>
 
-        {/* Tamper Score Card */}
-        <Card className="shadow-card hover:shadow-hover transition-smooth">
+        {/* Authenticity */}
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <AlertTriangle className="w-5 h-5 text-warning" />
               <span>Authenticity Score</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-center space-y-6">
+          <CardContent className="text-center">
             <div className="relative w-32 h-32 mx-auto">
               <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 36 36">
                 <path
-                  d="m18,2.0845 a 15.9155,15.9155 0 0,1 0,31.831 a 15.9155,15.9155 0 0,1 0,-31.831"
+                  d="m18,2.0845 a15.9155,15.9155 0 0,1 0,31.831a15.9155,15.9155 0 0,1 0,-31.831"
                   fill="none"
                   stroke="hsl(var(--muted))"
                   strokeWidth="2"
                 />
                 <path
-                  d="m18,2.0845 a 15.9155,15.9155 0 0,1 0,31.831 a 15.9155,15.9155 0 0,1 0,-31.831"
+                  d="m18,2.0845 a15.9155,15.9155 0 0,1 0,31.831a15.9155,15.9155 0 0,1 0,-31.831"
                   fill="none"
                   stroke="hsl(var(--warning))"
                   strokeWidth="2"
-                  strokeDasharray={`${tamperScore}, 100`}
+                  strokeDasharray={`${Math.round(data.authenticity ?? 0)}, 100`}
                 />
               </svg>
-              <div className="absolute inset-0 flex items-center justify-center flex-col">
-                <span className="text-3xl font-bold text-warning">
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-3xl font-bold">
                   {Math.round(data.authenticity ?? 0)}%
                 </span>
                 <span className="text-xs text-muted-foreground">
@@ -128,17 +108,16 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
           </CardContent>
         </Card>
 
-        {/* Image Preview Card */}
-        <Card className="shadow-card hover:shadow-hover transition-smooth">
+        {/* Image Preview + Heatmap */}
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className="flex justify-between items-center">
               <span>Image Preview</span>
-              {heatmapUrl && (
+              {data.heatmap_url && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setShowHeatmap(!showHeatmap)}
-                  className="border-accent-strong text-accent-strong hover:bg-accent"
                 >
                   {showHeatmap ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
                   {showHeatmap ? "Hide" : "Show"} Heatmap
@@ -147,38 +126,39 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="relative rounded-lg overflow-hidden">
-              {imageUrl ? (
+            <div className="relative rounded overflow-hidden">
+              {data.image_url ? (
                 <img
-                  src={imageUrl}
-                  alt="Uploaded content"
+                  src={data.image_url}
+                  alt="Uploaded"
                   className="w-full h-48 object-cover"
                 />
               ) : (
-                <div className="w-full h-48 bg-muted flex items-center justify-center text-sm text-muted-foreground">
-                  No Image Available
+                <div className="w-full h-48 bg-muted flex items-center justify-center">
+                  No Image
                 </div>
               )}
-              {showHeatmap && heatmapUrl && (
-                <div
-                  className="absolute inset-0 bg-cover bg-center opacity-60 mix-blend-multiply"
-                  style={{ backgroundImage: `url(${heatmapUrl})` }}
-                ></div>
+              {showHeatmap && data.heatmap_url && (
+                <img
+                  src={data.heatmap_url}
+                  alt="Heatmap"
+                  className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-multiply"
+                />
               )}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Deepfake Analysis (simple display) */}
-      <Card className="mt-6 shadow-card hover:shadow-hover transition-smooth">
+      {/* Deepfake Analysis */}
+      <Card className="mt-6">
         <CardHeader>
           <CardTitle>Deepfake Detection</CardTitle>
         </CardHeader>
         <CardContent>
           {data.real_prob != null && data.fake_prob != null ? (
             <div>
-              <p>Prediction: <span className="font-semibold">{data.label}</span></p>
+              <p>Prediction: <strong>{data.prediction}</strong></p>
               <p className="text-sm mt-2">Real Probability: {(data.real_prob * 100).toFixed(2)}%</p>
               <Progress value={(data.real_prob ?? 0) * 100} className="mb-2" />
               <p className="text-sm">Fake Probability: {(data.fake_prob * 100).toFixed(2)}%</p>
@@ -190,33 +170,26 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
         </CardContent>
       </Card>
 
-      {/* Reverse Search Results */}
+      {/* Reverse Search */}
       {reverseMatches.length > 0 && (
-        <Card className="mt-6 shadow-card hover:shadow-hover transition-smooth">
+        <Card className="mt-6">
           <CardHeader>
             <CardTitle>Reverse Image Search Results</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-3 gap-4">
-              {reverseMatches.map((result, index) => (
-                <div key={index} className="border border-border rounded-lg p-4 hover:bg-accent/20 transition-smooth">
-                  <div className="aspect-video bg-muted rounded mb-3"></div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium">{result.source}</span>
-                      {result.similarity && (
-                        <Badge variant="outline" className="border-success text-success">
-                          {result.similarity}
-                        </Badge>
-                      )}
-                    </div>
-                    {result.date && (
-                      <p className="text-xs text-muted-foreground flex items-center">
-                        <Calendar className="w-3 h-3 mr-1" />
-                        Posted {result.date}
-                      </p>
-                    )}
-                  </div>
+              {reverseMatches.map((result, i) => (
+                <div key={i} className="border rounded p-4">
+                  <p className="font-medium">{result.source}</p>
+                  {result.similarity && (
+                    <Badge>{result.similarity}</Badge>
+                  )}
+                  {result.date && (
+                    <p className="text-xs text-muted-foreground flex items-center">
+                      <Calendar className="w-3 h-3 mr-1" />
+                      {result.date}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

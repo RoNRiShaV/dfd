@@ -1,4 +1,3 @@
-# backend/forensics.py
 import torch
 import timm
 from torchvision import transforms
@@ -6,6 +5,9 @@ from PIL import Image, ExifTags
 import imagehash
 import logging
 from collections import OrderedDict
+from pytorch_grad_cam import GradCAM
+from pytorch_grad_cam.utils.image import show_cam_on_image
+import numpy as np
 
 # -------------------------------
 # Logging
@@ -22,31 +24,28 @@ logger.info(f"Device: {DEVICE}")
 # -------------------------------
 # Load model robustly
 # -------------------------------
-CHECKPOINT_PATH = "weights/efficientnet-b3.pkl"
+CHECKPOINT_PATH = "weights/efficientnet_b3_deepfake.pth"  # ✅ trained model path
 
-# Load checkpoint
 checkpoint = torch.load(CHECKPOINT_PATH, map_location=DEVICE)
 
-# Attempt to extract state_dict from common keys
-if 'state_dict' in checkpoint:
-    state_dict = checkpoint['state_dict']
-elif 'network' in checkpoint:
-    state_dict = checkpoint['network']
+# Extract state_dict
+if isinstance(checkpoint, dict) and any(k in checkpoint for k in ["state_dict", "network"]):
+    state_dict = checkpoint.get("state_dict") or checkpoint.get("network")
 else:
-    state_dict = checkpoint  # assume raw state_dict
+    state_dict = checkpoint
 
-# Strip "module." prefix if it exists (from DataParallel training)
+# Remove "module." prefix if it exists
 new_state_dict = OrderedDict()
 for k, v in state_dict.items():
-    if k.startswith('module.'):
-        k = k.replace('module.', '')
+    if k.startswith("module."):
+        k = k.replace("module.", "")
     new_state_dict[k] = v
 state_dict = new_state_dict
 
-# Initialize EfficientNet-B3
-model = timm.create_model('tf_efficientnet_b3', pretrained=False, num_classes=2)
+# Init EfficientNet-B3
+model = timm.create_model("tf_efficientnet_b3", pretrained=False, num_classes=2)
 
-# Load weights strictly and log any missing/unexpected keys
+# Load trained weights
 missing, unexpected = model.load_state_dict(state_dict, strict=False)
 if missing:
     logger.warning(f"Missing keys when loading weights: {missing}")
@@ -55,32 +54,25 @@ if unexpected:
 
 model.to(DEVICE)
 model.eval()
-logger.info("EfficientNet-B3 model loaded successfully.")
+logger.info("✅ Custom EfficientNet-B3 model loaded successfully.")
 
 # -------------------------------
-# Image preprocessing
+# Preprocessing
 # -------------------------------
 transform = transforms.Compose([
-    transforms.Resize((300, 300)),  # Ensure exact 300x300 input size
+    transforms.Resize((300, 300)),
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406],
-                         [0.229, 0.224, 0.225])
+                         [0.229, 0.224, 0.225]),
 ])
 
 # -------------------------------
-# Prediction function
+# Analyzer
 # -------------------------------
 def analyze_image_from_path(image_path: str, out_heatmap_path: str = None):
-    """
-    Analyze uploaded image:
-      - Compute EXIF metadata
-      - Compute phash
-      - Run DeepFake prediction
-    Returns a dict with results.
-    """
     result = {}
     try:
-        # Load image
+        # --- Load image ---
         img = Image.open(image_path).convert("RGB")
 
         # --- EXIF ---
@@ -93,7 +85,6 @@ def analyze_image_from_path(image_path: str, out_heatmap_path: str = None):
                     exif_data[key] = str(val)
         except Exception:
             exif_data = {}
-
         result["exif"] = exif_data
 
         # --- pHash ---
@@ -105,40 +96,52 @@ def analyze_image_from_path(image_path: str, out_heatmap_path: str = None):
 
         # --- DeepFake prediction ---
         img_tensor = transform(img).unsqueeze(0).to(DEVICE)
-        logger.debug(f"Input tensor shape: {img_tensor.shape}")  # Should be [1, 3, 300, 300]
-
         with torch.no_grad():
             logits = model(img_tensor)
             probs = torch.softmax(logits, dim=1)[0]
 
-        real_prob = float(probs[0])
-        fake_prob = float(probs[1])
+        real_prob = float(probs[1])
+        fake_prob = float(probs[0])
 
-        authenticity_score = real_prob * 100  # percentage
+        # Authenticity = confidence of being Real
+        authenticity_score = real_prob * 100  # %
 
-        # Define margin for suspicious predictions around 50%
-        margin = 5.0  # 5%
-
-        if abs(authenticity_score - 50.0) <= margin:
+        # Suspicious if probabilities are very close
+        margin = 0.05  # 5%
+        if abs(real_prob - fake_prob) <= margin:
             prediction = "Suspicious"
-        elif fake_prob > real_prob:
-            prediction = "Fake"
-        else:
+        elif real_prob > fake_prob:
             prediction = "Real"
+        else:
+            prediction = "Fake"
 
         result["deepfake"] = {
             "real_prob": real_prob,
             "fake_prob": fake_prob,
             "authenticity_score": authenticity_score,
-            "prediction": prediction
+            "prediction": prediction,
         }
 
-        # --- Optional heatmap path placeholder ---
+        # --- Heatmap (Grad-CAM) ---
         if out_heatmap_path:
-            result["heatmap"] = out_heatmap_path
+            try:
+                target_layers = [model.blocks[-1]]
+                cam = GradCAM(model=model, target_layers=target_layers, use_cuda=(DEVICE == "cuda"))
 
-        # Other dummy placeholders for your pipeline
-        result["tamper_score"] = fake_prob * 100  # simple example
+                rgb_img = np.array(img.resize((300, 300))) / 255.0
+                input_tensor = transform(img).unsqueeze(0).to(DEVICE)
+
+                grayscale_cam = cam(input_tensor=input_tensor)[0, :]
+                heatmap_img = show_cam_on_image(rgb_img.astype(np.float32), grayscale_cam, use_rgb=True)
+
+                Image.fromarray(heatmap_img).save(out_heatmap_path)
+                result["heatmap"] = out_heatmap_path
+            except Exception as e:
+                logger.error(f"Heatmap generation failed: {e}")
+                result["heatmap"] = None
+
+        # Extra fields
+        result["tamper_score"] = fake_prob * 100
         result["reverse_matches"] = []
 
     except Exception as e:
