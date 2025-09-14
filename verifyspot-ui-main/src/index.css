@@ -2,9 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* === Global base === */
+body {
+  @apply bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white;
+  margin: 0;
+}
 
 @layer base {
   :root {
@@ -44,8 +46,15 @@ All colors MUST be HSL.
     --success: 142 76% 36%;
     --success-foreground: 0 0% 98%;
 
-    --destructive: 0 84% 60%;
+    /* Fake / destructive red */
+    --destructive: 343 84% 55%;
     --destructive-foreground: 0 0% 98%;
+
+    /* Explicit tokens for voting/detection clarity */
+    --real: 142 76% 36%;
+    --real-foreground: 142 76% 85%;
+    --fake: 343 84% 55%;
+    --fake-foreground: 343 84% 90%;
 
     --border: 215 20% 90%;
     --input: 215 20% 96%;
@@ -66,20 +75,14 @@ All colors MUST be HSL.
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
+    /* Sidebar */
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -113,12 +116,19 @@ All colors MUST be HSL.
     --success: 142 76% 36%;
     --success-foreground: 0 0% 98%;
 
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 343 70% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Bright tokens for dark mode */
+    --real: 142 76% 45%;
+    --real-foreground: 142 76% 85%;
+    --fake: 343 80% 60%;
+    --fake-foreground: 343 84% 92%;
 
     --border: 215 25% 20%;
     --input: 215 25% 16%;
     --ring: 214 84% 35%;
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -139,13 +149,9 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
-/* === Dark + Glass theme (opt-in) ===
-   Append to the end of your existing index.css
-   This is scoped under .app-dark so nothing changes unless you add that class
-*/
 
+/* === Dark + Glass theme (opt-in) === */
 @layer utilities {
-  /* small tokens for glass */
   .glass-bg {
     background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
     border: 1px solid rgba(255,255,255,0.08);
@@ -170,7 +176,6 @@ All colors MUST be HSL.
     box-shadow: 0 12px 40px rgba(0,0,0,0.55);
   }
 
-  /* make image cards slightly elevated and rounded */
   .glass-card-image {
     border-radius: .625rem;
     overflow: hidden;
@@ -178,26 +183,20 @@ All colors MUST be HSL.
   }
 }
 
-/* app-dark scope: only applies when you add .app-dark to root */
 .app-dark {
   --dark-bg: 218 10% 10%;
   --dark-surface: 218 12% 14%;
   --muted-light: 215 20% 78%;
 
-  /* root colours for text & background used locally inside app-dark */
   background-color: hsl(var(--dark-bg));
   color: hsl(0 0% 97%);
 }
 
-/* keep spacing/layout unchanged — only change appearance of specific cards */
 .app-dark .container {
-  /* keep existing container behavior (max-width etc), only change bg text */
   color: hsl(0 0% 98%);
 }
 
-/* Upload box wrapper — keep the same size/spacing used earlier */
 .app-dark .upload-glass {
-  /* use utility class in your UploadSection wrapper */
   background: rgba(255,255,255,0.04);
   border-radius: 1rem;
   padding: 2rem;
@@ -207,7 +206,6 @@ All colors MUST be HSL.
   box-shadow: 0 10px 30px rgba(0,0,0,0.45);
 }
 
-/* Past uploads scroller backgrounds */
 .app-dark .history-glass {
   background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
   border-radius: 0.75rem;
@@ -216,7 +214,6 @@ All colors MUST be HSL.
   box-shadow: 0 6px 24px rgba(0,0,0,0.35);
 }
 
-/* Card inside history list */
 .app-dark .history-card {
   background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
   border: 1px solid rgba(255,255,255,0.06);
@@ -225,12 +222,10 @@ All colors MUST be HSL.
   color: hsl(0 0% 97%);
 }
 
-/* make text slightly muted on these cards */
 .app-dark .muted-on-dark {
   color: rgba(255,255,255,0.72);
 }
 
-/* Keep layout classes intact: do NOT override .container, .grid etc */
 .glass-card {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px);

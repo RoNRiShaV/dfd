@@ -125,46 +125,45 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
 
         {/* Authenticity */}
         <Card className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg">
-  <CardHeader>
-    <CardTitle className="flex items-center space-x-2 text-white">
-      <AlertTriangle className="w-5 h-5 text-yellow-400" />
-      <span>Authenticity Score</span>
-    </CardTitle>
-  </CardHeader>
-  <CardContent className="text-center">
-    <div className="relative w-32 h-32 mx-auto">
-      <svg
-        className="w-32 h-32 transform -rotate-90"
-        viewBox="0 0 36 36"
-      >
-        <path
-          d="m18,2.0845 a15.9155,15.9155 0 0,1 0,31.831a15.9155,15.9155 0 0,1 0,-31.831"
-          fill="none"
-          stroke="rgba(255,255,255,0.2)"
-          strokeWidth="2"
-        />
-        <path
-          d="m18,2.0845 a15.9155,15.9155 0 0,1 0,31.831a15.9155,15.9155 0 0,1 0,-31.831"
-          fill="none"
-          stroke="#facc15"
-          strokeWidth="2"
-          strokeDasharray={`${Math.round(data.authenticity ?? 0)}, 100`}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-bold text-yellow-400">
-          {Math.round(data.authenticity ?? 0)}%
-        </span>
-        <span className="text-xs text-gray-400">
-          {(data.authenticity ?? 0) > 70
-            ? "Likely Genuine"
-            : "Suspicious"}
-        </span>
-      </div>
-    </div>
-  </CardContent>
-</Card>
-
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <AlertTriangle className="w-5 h-5 text-yellow-400" />
+              <span>Authenticity Score</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center">
+            <div className="relative w-32 h-32 mx-auto">
+              <svg
+                className="w-32 h-32 transform -rotate-90"
+                viewBox="0 0 36 36"
+              >
+                <path
+                  d="m18,2.0845 a15.9155,15.9155 0 0,1 0,31.831a15.9155,15.9155 0 0,1 0,-31.831"
+                  fill="none"
+                  stroke="rgba(255,255,255,0.2)"
+                  strokeWidth="2"
+                />
+                <path
+                  d="m18,2.0845 a15.9155,15.9155 0 0,1 0,31.831a15.9155,15.9155 0 0,1 0,-31.831"
+                  fill="none"
+                  stroke="#facc15"
+                  strokeWidth="2"
+                  strokeDasharray={`${Math.round(data.authenticity ?? 0)}, 100`}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-3xl font-bold text-yellow-400">
+                  {Math.round(data.authenticity ?? 0)}%
+                </span>
+                <span className="text-xs text-gray-400">
+                  {(data.authenticity ?? 0) > 70
+                    ? "Likely Genuine"
+                    : "Suspicious"}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Image Preview */}
         <Card className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg">
@@ -213,57 +212,56 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
         </Card>
       </div>
 
-{/* Deepfake Analysis */}
-<Card className="mt-6 bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg">
-  <CardHeader>
-    <CardTitle className="text-white">Deepfake Detection</CardTitle>
-  </CardHeader>
-  <CardContent>
-    {data.real_prob != null && data.fake_prob != null ? (
-      <div>
-        <p className="mb-2 text-gray-300">
-          Prediction:{" "}
-          <Badge
-            className={`${
-              data.prediction === "real"
-                ? "bg-emerald-500/30 text-emerald-300"
-                : "bg-pink-500/30 text-pink-300"
-            }`}
-          >
-            {data.prediction?.toUpperCase()}
-          </Badge>
-        </p>
+      {/* Deepfake Analysis */}
+      <Card className="mt-6 bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-white">Deepfake Detection</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data.real_prob != null && data.fake_prob != null ? (
+            <div>
+              <p className="mb-2 text-gray-300">
+                Prediction:{" "}
+                <Badge
+                  className={`${
+                    data.prediction === "real"
+                      ? "bg-emerald-500/30 text-emerald-300"
+                      : "bg-pink-500/30 text-pink-300"
+                  }`}
+                >
+                  {data.prediction?.toUpperCase()}
+                </Badge>
+              </p>
 
-        {/* Real Probability */}
-        <p className="text-sm mb-2 text-emerald-300">
-          Real Probability:{" "}
-          <span className="font-bold text-emerald-400">
-            {(data.real_prob * 100).toFixed(2)}%
-          </span>
-        </p>
-        <Progress
-          value={data.real_prob * 100}
-          className="mb-4 [&>div]:bg-emerald-400"
-        />
+              {/* Real Probability */}
+              <p className="text-sm mb-2 text-emerald-300">
+                Real Probability:{" "}
+                <span className="font-bold text-emerald-400">
+                  {(data.real_prob * 100).toFixed(2)}%
+                </span>
+              </p>
+              <Progress
+                value={data.real_prob * 100}
+                className="mb-4 bg-gray-800/60 rounded-full [&>div]:bg-emerald-400"
+              />
 
-        {/* Fake Probability */}
-        <p className="text-sm mb-2 text-pink-300">
-          Fake Probability:{" "}
-          <span className="font-bold text-pink-400">
-            {(data.fake_prob * 100).toFixed(2)}%
-          </span>
-        </p>
-        <Progress
-          value={data.fake_prob * 100}
-          className="[&>div]:bg-pink-400"
-        />
-      </div>
-    ) : (
-      <p className="text-gray-400">Deepfake analysis not available.</p>
-    )}
-  </CardContent>
-</Card>
-
+              {/* Fake Probability */}
+              <p className="text-sm mb-2 text-pink-300">
+                Fake Probability:{" "}
+                <span className="font-bold text-pink-400">
+                  {(data.fake_prob * 100).toFixed(2)}%
+                </span>
+              </p>
+              <Progress
+                value={data.fake_prob * 100}
+                className="bg-gray-800/60 rounded-full [&>div]:bg-pink-400"
+              />
+            </div>
+          ) : (
+            <p className="text-gray-400">Deepfake analysis not available.</p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Reverse Search */}
       {reverseMatches.length > 0 && (
@@ -300,46 +298,51 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
       )}
 
       {/* Community Voting */}
-<Card className="mt-6 bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg">
-  <CardHeader>
-    <CardTitle className="text-white">Community Voting</CardTitle>
-  </CardHeader>
-  <CardContent>
-    <div className="flex space-x-4 mb-4">
-      <Button
-        onClick={() => handleVote("real")}
-        className="bg-emerald-500/30 text-emerald-300 hover:bg-emerald-500/40"
-      >
-        <ThumbsUp className="w-4 h-4 mr-2" /> Real
-      </Button>
-      <Button
-        onClick={() => handleVote("fake")}
-        className="bg-pink-500/30 text-pink-300 hover:bg-pink-500/40"
-      >
-        <ThumbsDown className="w-4 h-4 mr-2" /> Fake
-      </Button>
-    </div>
+      <Card className="mt-6 bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-white">Community Voting</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex space-x-4 mb-4">
+            <Button
+              onClick={() => handleVote("real")}
+              className="bg-emerald-500/30 text-emerald-300 hover:bg-emerald-500/40"
+            >
+              <ThumbsUp className="w-4 h-4 mr-2" /> Real
+            </Button>
+            <Button
+              onClick={() => handleVote("fake")}
+              className="bg-pink-500/30 text-pink-300 hover:bg-pink-500/40"
+            >
+              <ThumbsDown className="w-4 h-4 mr-2" /> Fake
+            </Button>
+          </div>
 
-    {/* Real Votes */}
-    <p className="text-sm mb-2 text-emerald-300">
-      Community thinks this image is Real:{" "}
-      <span className="font-bold text-emerald-400">
-        {realPercent.toFixed(1)}%
-      </span>
-    </p>
-    <Progress value={realPercent} className="mb-4 [&>div]:bg-emerald-400" />
+          {/* Real Votes */}
+          <p className="text-sm mb-2 text-emerald-300">
+            Community thinks this image is Real:{" "}
+            <span className="font-bold text-emerald-400">
+              {realPercent.toFixed(1)}%
+            </span>
+          </p>
+          <Progress
+            value={realPercent}
+            className="mb-4 bg-gray-800/60 rounded-full [&>div]:bg-emerald-400"
+          />
 
-    {/* Fake Votes */}
-    <p className="text-sm mb-2 text-pink-300">
-      Community thinks this image is Fake:{" "}
-      <span className="font-bold text-pink-400">
-        {fakePercent.toFixed(1)}%
-      </span>
-    </p>
-    <Progress value={fakePercent} className="[&>div]:bg-pink-400" />
-  </CardContent>
-</Card>
-
+          {/* Fake Votes */}
+          <p className="text-sm mb-2 text-pink-300">
+            Community thinks this image is Fake:{" "}
+            <span className="font-bold text-pink-400">
+              {fakePercent.toFixed(1)}%
+            </span>
+          </p>
+          <Progress
+            value={fakePercent}
+            className="bg-gray-800/60 rounded-full [&>div]:bg-pink-400"
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 };

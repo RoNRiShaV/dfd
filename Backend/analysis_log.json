@@ -783,6 +783,28 @@
     "real_prob": 0.1586829423904419,
     "fake_prob": 0.8413171172142029,
     "prediction": "Fake",
+    "votes_fake": 4,
+    "votes_real": 1
+  },
+  {
+    "id": "9ce31686a4694483ade49beca073f086.jpg",
+    "timestamp": "2025-09-14T16:52:14.902445",
+    "filename": "9ce31686a4694483ade49beca073f086.jpg",
+    "file_url": "/api/uploads/9ce31686a4694483ade49beca073f086.jpg",
+    "phash": "dc07b5701cf31c8e",
+    "exif": {
+      "XResolution": "300.0",
+      "YResolution": "300.0",
+      "ImageDescription": "A blurred long exposure human face portrait, evoking a sense of surrealism. The image features a layered motion blur effect, creating an ethereal visual aesthetic with deep conceptual undertones."
+    },
+    "tamper_score": 84.13171172142029,
+    "heatmap_url": "/api/heatmaps/9ce31686a4694483ade49beca073f086_heatmap.png",
+    "reverse_matches": [],
+    "label": "Fake",
+    "authenticity": 15.86829423904419,
+    "real_prob": 0.1586829423904419,
+    "fake_prob": 0.8413171172142029,
+    "prediction": "Fake",
     "votes_fake": 0,
     "votes_real": 0
   }
