@@ -39,7 +39,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",  # for local dev
-        "https://your-frontend-name.netlify.app"  # replace with real Netlify URL
+        
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -260,3 +260,12 @@ async def serve_heatmap(filename: str):
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "device": DEVICE}
+
+
+# -------------------------------
+# ✅ Entrypoint for Render
+# -------------------------------
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))  # Render provides PORT
+    uvicorn.run("Backend.main:app", host="0.0.0.0", port=port, reload=False)
