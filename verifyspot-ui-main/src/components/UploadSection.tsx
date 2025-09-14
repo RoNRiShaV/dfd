@@ -41,8 +41,7 @@ const UploadSection = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      // ✅ use env variable instead of hardcoded localhost
-      const API = import.meta.env.VITE_API_URL;
+      const API = "http://localhost:8000";
 
       const response = await fetch(`${API}/api/upload`, {
         method: "POST",

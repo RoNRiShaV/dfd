@@ -33,8 +33,7 @@ const Result = () => {
     const fetchReport = async () => {
       setLoading(true);
       try {
-        // ✅ Use environment variable instead of hardcoded localhost
-        const backendBase = import.meta.env.VITE_API_URL;
+        const backendBase = "http://localhost:8000"; // ✅ localhost
         const backendUrl = `${backendBase}/api/result/${id}`;
         const res = await fetch(backendUrl);
 

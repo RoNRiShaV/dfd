@@ -13,8 +13,8 @@ from fastapi.staticfiles import StaticFiles
 # Pillow for EXIF
 from PIL import Image, ExifTags
 
-# Import pipeline
-from Backend.forensics import analyze_image_from_path, DEVICE
+# Import pipeline (absolute import to avoid relative import issues)
+from forensics import analyze_image_from_path, DEVICE
 
 
 # -------------------------------
@@ -37,10 +37,7 @@ app = FastAPI(title="DeepFake Detection API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",  # for local dev
-        "https://your-frontend-name.netlify.app"  # replace with real Netlify URL
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -248,17 +245,15 @@ async def serve_upload(filename: str):
     path = UPLOAD_DIR / filename
     if not path.exists():
         raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(path)
+    return FileResponse(path, headers={"Cache-Control": "no-store"})
 
 @app.get("/api/heatmaps/{filename}")
 async def serve_heatmap(filename: str):
     path = HEATMAP_DIR / filename
     if not path.exists():
         raise HTTPException(status_code=404, detail="Heatmap not found")
-    return FileResponse(path)
+    return FileResponse(path, headers={"Cache-Control": "no-store"})
 
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "device": DEVICE}
-
-
