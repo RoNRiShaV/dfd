@@ -14,7 +14,8 @@ from fastapi.staticfiles import StaticFiles
 from PIL import Image, ExifTags
 
 # Import pipeline
-from forensics import analyze_image_from_path, DEVICE
+from Backend.forensics import analyze_image_from_path, DEVICE
+
 
 # -------------------------------
 # Config / paths
