@@ -39,7 +39,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",  # for local dev
-        
+        "https://your-frontend-name.netlify.app"  # replace with real Netlify URL
     ],
     allow_credentials=True,
     allow_methods=["*"],
