@@ -20,7 +20,7 @@ interface ReverseMatch {
 }
 
 interface AnalysisData {
-  id?: string; // backend id
+  id?: string;
   filename?: string;
   image_url?: string;
   heatmap_url?: string;
@@ -42,13 +42,13 @@ interface VoteData {
 const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
   if (!data) {
     return (
-      <div className="text-center py-20 text-muted-foreground">
+      <div className="text-center py-20 text-gray-400">
         No analysis data available.
       </div>
     );
   }
 
-  const backendBase = "http://localhost:8000"; // ✅ ensure backend base is consistent
+  const backendBase = "http://localhost:8000";
 
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [votes, setVotes] = useState<VoteData>({
@@ -60,19 +60,14 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
   const exif = data.exif ?? {};
   const reverseMatches = data.reverse_matches ?? [];
 
-  // Fetch current votes
   useEffect(() => {
     if (!data?.id) return;
     fetch(`${backendBase}/api/votes/${data.id}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Votes fetch failed");
-        return res.json();
-      })
+      .then((res) => res.json())
       .then((json) => setVotes(json))
       .catch((err) => console.error("Votes fetch error:", err));
   }, [data?.id]);
 
-  // Submit vote
   const handleVote = async (type: "real" | "fake") => {
     if (!data?.id) return;
     try {
@@ -81,7 +76,6 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ vote: type }),
       });
-      if (!res.ok) throw new Error("Vote failed");
       const updated = await res.json();
       setVotes(updated);
     } catch (err) {
@@ -95,23 +89,21 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
     votes.total > 0 ? (votes.votes_fake / votes.total) * 100 : 0;
 
   return (
-    <div className="container mx-auto px-6 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white px-6 py-12">
       {/* Title */}
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-foreground mb-4">
-          Analysis Results
-        </h2>
-        <p className="text-muted-foreground">
+        <h2 className="text-3xl font-bold mb-4">Analysis Results</h2>
+        <p className="text-gray-400">
           Comprehensive forensic analysis of your uploaded content
         </p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Metadata */}
-        <Card>
+        <Card className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Camera className="w-5 h-5 text-accent-strong" />
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <Camera className="w-5 h-5 text-purple-400" />
               <span>Metadata Analysis</span>
             </CardTitle>
           </CardHeader>
@@ -119,12 +111,12 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
             {Object.entries(exif).length > 0 ? (
               Object.entries(exif).map(([key, value]) => (
                 <div key={key} className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{key}</span>
-                  <span>{String(value)}</span>
+                  <span className="text-gray-400">{key}</span>
+                  <span className="text-white">{String(value)}</span>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-400">
                 No EXIF metadata available
               </p>
             )}
@@ -132,56 +124,58 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
         </Card>
 
         {/* Authenticity */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <AlertTriangle className="w-5 h-5 text-warning" />
-              <span>Authenticity Score</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-center">
-            <div className="relative w-32 h-32 mx-auto">
-              <svg
-                className="w-32 h-32 transform -rotate-90"
-                viewBox="0 0 36 36"
-              >
-                <path
-                  d="m18,2.0845 a15.9155,15.9155 0 0,1 0,31.831a15.9155,15.9155 0 0,1 0,-31.831"
-                  fill="none"
-                  stroke="hsl(var(--muted))"
-                  strokeWidth="2"
-                />
-                <path
-                  d="m18,2.0845 a15.9155,15.9155 0 0,1 0,31.831a15.9155,15.9155 0 0,1 0,-31.831"
-                  fill="none"
-                  stroke="hsl(var(--warning))"
-                  strokeWidth="2"
-                  strokeDasharray={`${Math.round(data.authenticity ?? 0)}, 100`}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-bold">
-                  {Math.round(data.authenticity ?? 0)}%
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {(data.authenticity ?? 0) > 70
-                    ? "Likely Genuine"
-                    : "Suspicious"}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <Card className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg">
+  <CardHeader>
+    <CardTitle className="flex items-center space-x-2 text-white">
+      <AlertTriangle className="w-5 h-5 text-yellow-400" />
+      <span>Authenticity Score</span>
+    </CardTitle>
+  </CardHeader>
+  <CardContent className="text-center">
+    <div className="relative w-32 h-32 mx-auto">
+      <svg
+        className="w-32 h-32 transform -rotate-90"
+        viewBox="0 0 36 36"
+      >
+        <path
+          d="m18,2.0845 a15.9155,15.9155 0 0,1 0,31.831a15.9155,15.9155 0 0,1 0,-31.831"
+          fill="none"
+          stroke="rgba(255,255,255,0.2)"
+          strokeWidth="2"
+        />
+        <path
+          d="m18,2.0845 a15.9155,15.9155 0 0,1 0,31.831a15.9155,15.9155 0 0,1 0,-31.831"
+          fill="none"
+          stroke="#facc15"
+          strokeWidth="2"
+          strokeDasharray={`${Math.round(data.authenticity ?? 0)}, 100`}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-3xl font-bold text-yellow-400">
+          {Math.round(data.authenticity ?? 0)}%
+        </span>
+        <span className="text-xs text-gray-400">
+          {(data.authenticity ?? 0) > 70
+            ? "Likely Genuine"
+            : "Suspicious"}
+        </span>
+      </div>
+    </div>
+  </CardContent>
+</Card>
 
-        {/* Image Preview + Heatmap */}
-        <Card>
+
+        {/* Image Preview */}
+        <Card className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg">
           <CardHeader>
-            <CardTitle className="flex justify-between items-center">
+            <CardTitle className="flex justify-between items-center text-white">
               <span>Image Preview</span>
               {data.heatmap_url && (
                 <Button
                   variant="outline"
                   size="sm"
+                  className="border border-pink-500/40 text-pink-400 hover:bg-pink-500/20 hover:text-pink-300 transition backdrop-blur-sm"
                   onClick={() => setShowHeatmap(!showHeatmap)}
                 >
                   {showHeatmap ? (
@@ -203,7 +197,7 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
                   className="w-full h-48 object-cover"
                 />
               ) : (
-                <div className="w-full h-48 bg-muted flex items-center justify-center">
+                <div className="w-full h-48 bg-gray-700 flex items-center justify-center text-gray-400">
                   No Image
                 </div>
               )}
@@ -219,48 +213,81 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
         </Card>
       </div>
 
-      {/* Deepfake Analysis */}
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Deepfake Detection</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data.real_prob != null && data.fake_prob != null ? (
-            <div>
-              <p>
-                Prediction: <strong>{data.prediction}</strong>
-              </p>
-              <p className="text-sm mt-2">
-                Real Probability: {(data.real_prob * 100).toFixed(2)}%
-              </p>
-              <Progress value={(data.real_prob ?? 0) * 100} className="mb-2" />
-              <p className="text-sm">
-                Fake Probability: {(data.fake_prob * 100).toFixed(2)}%
-              </p>
-              <Progress value={(data.fake_prob ?? 0) * 100} />
-            </div>
-          ) : (
-            <p className="text-muted-foreground">
-              Deepfake analysis not available.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+{/* Deepfake Analysis */}
+<Card className="mt-6 bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg">
+  <CardHeader>
+    <CardTitle className="text-white">Deepfake Detection</CardTitle>
+  </CardHeader>
+  <CardContent>
+    {data.real_prob != null && data.fake_prob != null ? (
+      <div>
+        <p className="mb-2 text-gray-300">
+          Prediction:{" "}
+          <Badge
+            className={`${
+              data.prediction === "real"
+                ? "bg-emerald-500/30 text-emerald-300"
+                : "bg-pink-500/30 text-pink-300"
+            }`}
+          >
+            {data.prediction?.toUpperCase()}
+          </Badge>
+        </p>
+
+        {/* Real Probability */}
+        <p className="text-sm mb-2 text-emerald-300">
+          Real Probability:{" "}
+          <span className="font-bold text-emerald-400">
+            {(data.real_prob * 100).toFixed(2)}%
+          </span>
+        </p>
+        <Progress
+          value={data.real_prob * 100}
+          className="mb-4 [&>div]:bg-emerald-400"
+        />
+
+        {/* Fake Probability */}
+        <p className="text-sm mb-2 text-pink-300">
+          Fake Probability:{" "}
+          <span className="font-bold text-pink-400">
+            {(data.fake_prob * 100).toFixed(2)}%
+          </span>
+        </p>
+        <Progress
+          value={data.fake_prob * 100}
+          className="[&>div]:bg-pink-400"
+        />
+      </div>
+    ) : (
+      <p className="text-gray-400">Deepfake analysis not available.</p>
+    )}
+  </CardContent>
+</Card>
+
 
       {/* Reverse Search */}
       {reverseMatches.length > 0 && (
-        <Card className="mt-6">
+        <Card className="mt-6 bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg">
           <CardHeader>
-            <CardTitle>Reverse Image Search Results</CardTitle>
+            <CardTitle className="text-white">
+              Reverse Image Search Results
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-3 gap-4">
               {reverseMatches.map((result, i) => (
-                <div key={i} className="border rounded p-4">
+                <div
+                  key={i}
+                  className="border border-white/20 rounded p-4 bg-white/5 backdrop-blur-sm"
+                >
                   <p className="font-medium">{result.source}</p>
-                  {result.similarity && <Badge>{result.similarity}</Badge>}
+                  {result.similarity && (
+                    <Badge className="bg-purple-500/30 text-purple-300">
+                      {result.similarity}
+                    </Badge>
+                  )}
                   {result.date && (
-                    <p className="text-xs text-muted-foreground flex items-center">
+                    <p className="text-xs text-gray-400 flex items-center mt-1">
                       <Calendar className="w-3 h-3 mr-1" />
                       {result.date}
                     </p>
@@ -273,31 +300,46 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
       )}
 
       {/* Community Voting */}
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Community Voting</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex space-x-4 mb-4">
-            <Button variant="outline" onClick={() => handleVote("real")}>
-              <ThumbsUp className="w-4 h-4 mr-2" /> Real
-            </Button>
-            <Button variant="outline" onClick={() => handleVote("fake")}>
-              <ThumbsDown className="w-4 h-4 mr-2" /> Fake
-            </Button>
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm">
-              Community thinks this image is Real: {realPercent.toFixed(1)}%
-            </p>
-            <Progress value={realPercent} className="mb-2" />
-            <p className="text-sm">
-              Community thinks this image is Fake: {fakePercent.toFixed(1)}%
-            </p>
-            <Progress value={fakePercent} />
-          </div>
-        </CardContent>
-      </Card>
+<Card className="mt-6 bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg">
+  <CardHeader>
+    <CardTitle className="text-white">Community Voting</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="flex space-x-4 mb-4">
+      <Button
+        onClick={() => handleVote("real")}
+        className="bg-emerald-500/30 text-emerald-300 hover:bg-emerald-500/40"
+      >
+        <ThumbsUp className="w-4 h-4 mr-2" /> Real
+      </Button>
+      <Button
+        onClick={() => handleVote("fake")}
+        className="bg-pink-500/30 text-pink-300 hover:bg-pink-500/40"
+      >
+        <ThumbsDown className="w-4 h-4 mr-2" /> Fake
+      </Button>
+    </div>
+
+    {/* Real Votes */}
+    <p className="text-sm mb-2 text-emerald-300">
+      Community thinks this image is Real:{" "}
+      <span className="font-bold text-emerald-400">
+        {realPercent.toFixed(1)}%
+      </span>
+    </p>
+    <Progress value={realPercent} className="mb-4 [&>div]:bg-emerald-400" />
+
+    {/* Fake Votes */}
+    <p className="text-sm mb-2 text-pink-300">
+      Community thinks this image is Fake:{" "}
+      <span className="font-bold text-pink-400">
+        {fakePercent.toFixed(1)}%
+      </span>
+    </p>
+    <Progress value={fakePercent} className="[&>div]:bg-pink-400" />
+  </CardContent>
+</Card>
+
     </div>
   );
 };

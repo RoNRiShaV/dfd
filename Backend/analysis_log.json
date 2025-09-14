@@ -653,5 +653,137 @@
     "prediction": "Fake",
     "votes_fake": 0,
     "votes_real": 0
+  },
+  {
+    "id": "16cd55f2d1604480b1a1ee366105a765.jpg",
+    "timestamp": "2025-09-14T15:53:14.869633",
+    "filename": "16cd55f2d1604480b1a1ee366105a765.jpg",
+    "file_url": "/api/uploads/16cd55f2d1604480b1a1ee366105a765.jpg",
+    "phash": "acacc65a7c6b9838",
+    "exif": {
+      "XResolution": "300.0",
+      "YResolution": "300.0",
+      "ImageDescription": "A portrait of a human in an AI oxygen mask exploring virtual Universe and meta spaces. The futuristic digital world,?built on big data and algorithms, deep learning technologies, and trained neural networks. In the near future, concepts of entering the artificial intelligence era will manifest the tandem of the human race and responsible AI technologies. Sensitive personal data, authenticity vs. deepfake detection. AI inclusion."
+    },
+    "tamper_score": 99.98052716255188,
+    "heatmap_url": "/api/heatmaps/16cd55f2d1604480b1a1ee366105a765_heatmap.png",
+    "reverse_matches": [],
+    "label": "Fake",
+    "authenticity": 0.01947977434610948,
+    "real_prob": 0.0001947977434610948,
+    "fake_prob": 0.9998052716255188,
+    "prediction": "Fake",
+    "votes_fake": 1,
+    "votes_real": 0
+  },
+  {
+    "id": "cb7403ee45f1443582e14b5e0096df32.jpg",
+    "timestamp": "2025-09-14T15:55:37.324521",
+    "filename": "cb7403ee45f1443582e14b5e0096df32.jpg",
+    "file_url": "/api/uploads/cb7403ee45f1443582e14b5e0096df32.jpg",
+    "phash": "dc07b5701cf31c8e",
+    "exif": {
+      "XResolution": "300.0",
+      "YResolution": "300.0",
+      "ImageDescription": "A blurred long exposure human face portrait, evoking a sense of surrealism. The image features a layered motion blur effect, creating an ethereal visual aesthetic with deep conceptual undertones."
+    },
+    "tamper_score": 84.13171172142029,
+    "heatmap_url": "/api/heatmaps/cb7403ee45f1443582e14b5e0096df32_heatmap.png",
+    "reverse_matches": [],
+    "label": "Fake",
+    "authenticity": 15.86829423904419,
+    "real_prob": 0.1586829423904419,
+    "fake_prob": 0.8413171172142029,
+    "prediction": "Fake",
+    "votes_fake": 0,
+    "votes_real": 0
+  },
+  {
+    "id": "4e47241dd94248d58f825cd218028390.jpg",
+    "timestamp": "2025-09-14T16:00:59.354955",
+    "filename": "4e47241dd94248d58f825cd218028390.jpg",
+    "file_url": "/api/uploads/4e47241dd94248d58f825cd218028390.jpg",
+    "phash": "dc07b5701cf31c8e",
+    "exif": {
+      "XResolution": "300.0",
+      "YResolution": "300.0",
+      "ImageDescription": "A blurred long exposure human face portrait, evoking a sense of surrealism. The image features a layered motion blur effect, creating an ethereal visual aesthetic with deep conceptual undertones."
+    },
+    "tamper_score": 84.13171172142029,
+    "heatmap_url": "/api/heatmaps/4e47241dd94248d58f825cd218028390_heatmap.png",
+    "reverse_matches": [],
+    "label": "Fake",
+    "authenticity": 15.86829423904419,
+    "real_prob": 0.1586829423904419,
+    "fake_prob": 0.8413171172142029,
+    "prediction": "Fake",
+    "votes_fake": 0,
+    "votes_real": 0
+  },
+  {
+    "id": "da81dcc789e14a0db1a5d0928afb1cac.jpg",
+    "timestamp": "2025-09-14T16:08:26.765523",
+    "filename": "da81dcc789e14a0db1a5d0928afb1cac.jpg",
+    "file_url": "/api/uploads/da81dcc789e14a0db1a5d0928afb1cac.jpg",
+    "phash": "acacc65a7c6b9838",
+    "exif": {
+      "XResolution": "300.0",
+      "YResolution": "300.0",
+      "ImageDescription": "A portrait of a human in an AI oxygen mask exploring virtual Universe and meta spaces. The futuristic digital world,?built on big data and algorithms, deep learning technologies, and trained neural networks. In the near future, concepts of entering the artificial intelligence era will manifest the tandem of the human race and responsible AI technologies. Sensitive personal data, authenticity vs. deepfake detection. AI inclusion."
+    },
+    "tamper_score": 99.98052716255188,
+    "heatmap_url": "/api/heatmaps/da81dcc789e14a0db1a5d0928afb1cac_heatmap.png",
+    "reverse_matches": [],
+    "label": "Fake",
+    "authenticity": 0.01947977434610948,
+    "real_prob": 0.0001947977434610948,
+    "fake_prob": 0.9998052716255188,
+    "prediction": "Fake",
+    "votes_fake": 0,
+    "votes_real": 0
+  },
+  {
+    "id": "c142e5c4bd554062b8b891ee1abd368a.jpg",
+    "timestamp": "2025-09-14T16:35:28.410982",
+    "filename": "c142e5c4bd554062b8b891ee1abd368a.jpg",
+    "file_url": "/api/uploads/c142e5c4bd554062b8b891ee1abd368a.jpg",
+    "phash": "acacc65a7c6b9838",
+    "exif": {
+      "XResolution": "300.0",
+      "YResolution": "300.0",
+      "ImageDescription": "A portrait of a human in an AI oxygen mask exploring virtual Universe and meta spaces. The futuristic digital world,?built on big data and algorithms, deep learning technologies, and trained neural networks. In the near future, concepts of entering the artificial intelligence era will manifest the tandem of the human race and responsible AI technologies. Sensitive personal data, authenticity vs. deepfake detection. AI inclusion."
+    },
+    "tamper_score": 99.98052716255188,
+    "heatmap_url": "/api/heatmaps/c142e5c4bd554062b8b891ee1abd368a_heatmap.png",
+    "reverse_matches": [],
+    "label": "Fake",
+    "authenticity": 0.01947977434610948,
+    "real_prob": 0.0001947977434610948,
+    "fake_prob": 0.9998052716255188,
+    "prediction": "Fake",
+    "votes_fake": 0,
+    "votes_real": 0
+  },
+  {
+    "id": "a130c7447c134a84826f1815292299f9.jpg",
+    "timestamp": "2025-09-14T16:35:41.877998",
+    "filename": "a130c7447c134a84826f1815292299f9.jpg",
+    "file_url": "/api/uploads/a130c7447c134a84826f1815292299f9.jpg",
+    "phash": "dc07b5701cf31c8e",
+    "exif": {
+      "XResolution": "300.0",
+      "YResolution": "300.0",
+      "ImageDescription": "A blurred long exposure human face portrait, evoking a sense of surrealism. The image features a layered motion blur effect, creating an ethereal visual aesthetic with deep conceptual undertones."
+    },
+    "tamper_score": 84.13171172142029,
+    "heatmap_url": "/api/heatmaps/a130c7447c134a84826f1815292299f9_heatmap.png",
+    "reverse_matches": [],
+    "label": "Fake",
+    "authenticity": 15.86829423904419,
+    "real_prob": 0.1586829423904419,
+    "fake_prob": 0.8413171172142029,
+    "prediction": "Fake",
+    "votes_fake": 0,
+    "votes_real": 0
   }
 ]

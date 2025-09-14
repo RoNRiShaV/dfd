@@ -1,33 +1,30 @@
-import { Shield, Search } from "lucide-react";
+import { Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const ForensicsHeader = () => {
   return (
-    <header className="glass-card border-b border-white/30 shadow-lg">
-      <div className="container mx-auto px-6 py-6">
-        <div className="flex items-center justify-between">
-          {/* Logo & Title */}
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-glow">
-              <Shield className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white drop-shadow">
-                DeepGUARD
-              </h1>
-              <p className="text-white/70 text-sm">
-                Verify viral content instantly
-              </p>
-            </div>
+    <header className="w-full bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 border-b border-white/10 shadow-lg backdrop-blur-md">
+      <div className="container mx-auto flex items-center justify-between px-6 py-4">
+        {/* Logo / Branding */}
+        <div className="flex items-center space-x-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-md">
+            <Shield className="w-5 h-5 text-white" />
           </div>
-
-          {/* Browse Button */}
-          <div className="flex items-center space-x-4">
-            <button className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/40 transition-all">
-              <Search className="w-4 h-4" />
-              <span className="hidden sm:inline">Browse Database</span>
-            </button>
+          <div>
+            <h1 className="text-lg font-bold text-white">DeepGUARD</h1>
+            <p className="text-xs text-gray-400">
+              Verify viral content instantly
+            </p>
           </div>
         </div>
+
+        {/* Right-side action */}
+        <Button
+          variant="outline"
+          className="border border-pink-500/40 text-pink-400 hover:bg-pink-500/20 hover:text-pink-300 transition backdrop-blur-sm"
+        >
+          Browse Database
+        </Button>
       </div>
     </header>
   );
