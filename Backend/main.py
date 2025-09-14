@@ -202,6 +202,16 @@ async def get_votes(file_id: str):
     }
 
 # -------------------------------
+# ✅ History endpoint
+# -------------------------------
+@app.get("/api/history")
+async def get_history():
+    logs = _read_log()
+    # Sort latest first
+    logs_sorted = sorted(logs, key=lambda x: x.get("timestamp", ""), reverse=True)
+    return logs_sorted
+
+# -------------------------------
 # Static serving
 # -------------------------------
 @app.get("/api/uploads/{filename}")

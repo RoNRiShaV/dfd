@@ -1,9 +1,10 @@
 import ForensicsHeader from "@/components/ForensicsHeader";
 import UploadSection from "@/components/UploadSection";
 import AnalysisResults from "@/components/AnalysisResults";
-import CommunitySection from "@/components/CommunitySection";
+//import CommunitySection from "@/components/CommunitySection";
 import PrivacySection from "@/components/PrivacySection";
 import ForensicsFooter from "@/components/ForensicsFooter";
+import HistoryCarousel from "@/components/HiatoryCarousel"; // ✅ new import
 
 const Index = () => {
   return (
@@ -11,8 +12,12 @@ const Index = () => {
       <ForensicsHeader />
       <main>
         <UploadSection />
+
+        {/* ✅ New horizontally scrollable history section */}
+        <HistoryCarousel />
+
         <AnalysisResults />
-        <CommunitySection />
+
         <PrivacySection />
       </main>
       <ForensicsFooter />
