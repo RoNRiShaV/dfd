@@ -939,5 +939,27 @@
     "prediction": "Fake",
     "votes_fake": 0,
     "votes_real": 0
+  },
+  {
+    "id": "0ec4ddc600364fb8bd725105fb02087e.jpg",
+    "timestamp": "2025-09-15T06:13:51.778000",
+    "filename": "0ec4ddc600364fb8bd725105fb02087e.jpg",
+    "file_url": "/api/uploads/0ec4ddc600364fb8bd725105fb02087e.jpg",
+    "phash": "8b89b586721b9a4f",
+    "exif": {
+      "XResolution": "300.0",
+      "YResolution": "300.0",
+      "ImageDescription": "beautiful girl typing a voice message on a smartphone artificial intelligence technology"
+    },
+    "tamper_score": 86.10587120056152,
+    "heatmap_url": "/api/heatmaps/0ec4ddc600364fb8bd725105fb02087e_heatmap.png",
+    "reverse_matches": [],
+    "label": "Fake",
+    "authenticity": 13.894125819206238,
+    "real_prob": 0.13894125819206238,
+    "fake_prob": 0.8610587120056152,
+    "prediction": "Fake",
+    "votes_fake": 0,
+    "votes_real": 0
   }
 ]
