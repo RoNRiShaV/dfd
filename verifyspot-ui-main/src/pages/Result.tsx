@@ -22,18 +22,29 @@ interface ReportData {
   fake_prob?: number;
 }
 
-const Result = () => {
+interface ResultProps {
+  privacyMode: boolean;
+}
+
+const Result = ({ privacyMode }: ResultProps) => {
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
   const [report, setReport] = useState<ReportData | null>(null);
 
   useEffect(() => {
+    // ✅ Privacy Mode → skip backend fetch completely
+    if (privacyMode) {
+      setReport(null);
+      setLoading(false);
+      return;
+    }
+
     if (!id) return;
 
     const fetchReport = async () => {
       setLoading(true);
       try {
-        const backendBase = "http://localhost:8000"; // ✅ localhost
+        const backendBase = "http://localhost:8000"; // ✅ local dev server
         const backendUrl = `${backendBase}/api/result/${id}`;
         const res = await fetch(backendUrl);
 
@@ -62,7 +73,7 @@ const Result = () => {
     };
 
     fetchReport();
-  }, [id]);
+  }, [id, privacyMode]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -71,8 +82,22 @@ const Result = () => {
         {loading && (
           <div className="container mx-auto px-6">Loading report...</div>
         )}
-        {!loading && report && <AnalysisResults data={report} />}
-        {!loading && !report && (
+
+        {/* ✅ Privacy Mode Message */}
+        {!loading && privacyMode && (
+          <div className="container mx-auto px-6 text-center text-gray-300">
+            <p className="text-lg font-semibold">
+              Privacy Mode is ON — No reports are stored or fetched.
+            </p>
+            <p className="text-sm mt-2">
+              Upload analysis was done in-memory and no trace was kept.
+            </p>
+          </div>
+        )}
+
+        {!loading && !privacyMode && report && <AnalysisResults data={report} />}
+
+        {!loading && !privacyMode && !report && (
           <div className="container mx-auto px-6">Report not found</div>
         )}
       </main>

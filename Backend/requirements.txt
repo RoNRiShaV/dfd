@@ -16,3 +16,4 @@ torchvision
 timm
 albumentations
 grad-cam
+reportlab

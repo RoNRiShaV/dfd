@@ -1,11 +1,12 @@
-import { Upload, Link, Image } from "lucide-react";
+import { Upload, Link, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useState, useRef } from "react";
 
-const UploadSection = () => {
+const UploadSection = ({ privacyMode }: { privacyMode: boolean }) => {
   const [dragActive, setDragActive] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -38,8 +39,11 @@ const UploadSection = () => {
 
   const uploadFile = async (file: File) => {
     try {
+      setUploading(true);
+
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("privacy", privacyMode ? "1" : "0");
 
       const API = "http://localhost:8000";
 
@@ -56,14 +60,25 @@ const UploadSection = () => {
       const result = await response.json();
       console.log("Analysis result:", result);
 
-      const idToNavigate = result.id || result.filename;
-      if (!idToNavigate) {
-        console.warn("Upload returned no id/filename — staying on page.");
-        return;
+      // ✅ Do NOT save privacy uploads locally
+      if (!privacyMode) {
+        const history = JSON.parse(localStorage.getItem("uploadHistory") || "[]");
+        const newEntry = {
+          id: result.id,
+          file_url: result.file_url || `/api/uploads/${result.filename}`,
+          prediction: result.prediction,
+        };
+        localStorage.setItem("uploadHistory", JSON.stringify([newEntry, ...history]));
       }
-      navigate(`/results/${idToNavigate}`);
+
+      const idToNavigate = result.id || result.filename;
+      if (idToNavigate) {
+        navigate(`/results/${idToNavigate}`);
+      }
     } catch (err) {
       console.error("Upload failed:", err);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -117,9 +132,10 @@ const UploadSection = () => {
               <Button
                 className="bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg hover:shadow-pink-500/50 transition"
                 onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
               >
-                <Image className="w-4 h-4 mr-2" />
-                Choose File
+                <ImageIcon className="w-4 h-4 mr-2" />
+                {uploading ? "Uploading..." : "Choose File"}
               </Button>
 
               <Button
@@ -133,7 +149,9 @@ const UploadSection = () => {
 
             <div className="pt-4 border-t border-white/20">
               <p className="text-xs text-gray-300">
-                Your uploads are processed securely and deleted after analysis
+                {privacyMode
+                  ? "🔒 Privacy Mode is ON → This upload will be analyzed but not stored in history."
+                  : "Your uploads are processed securely and stored in history."}
               </p>
             </div>
           </div>

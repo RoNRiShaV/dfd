@@ -7,6 +7,8 @@ import {
   EyeOff,
   ThumbsUp,
   ThumbsDown,
+  Search,
+  FileDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,9 @@ interface AnalysisData {
   authenticity?: number;
   real_prob?: number;
   fake_prob?: number;
+  reverse?: {
+    tineye?: string;
+  };
 }
 
 interface VoteData {
@@ -56,6 +61,8 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
     votes_fake: 0,
     total: 0,
   });
+
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const exif = data.exif ?? {};
   const reverseMatches = data.reverse_matches ?? [];
@@ -83,10 +90,40 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
     }
   };
 
+  const handleGeneratePDF = async () => {
+    if (!data?.id) return;
+    setIsGeneratingPDF(true);
+    try {
+      const res = await fetch(`${backendBase}/api/report/${data.id}`, {
+        method: "GET",
+      });
+
+      if (!res.ok) throw new Error("Failed to generate PDF");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${data.filename?.replace(/\.[^/.]+$/, "") || "report"}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      alert("Failed to generate PDF. Please try again.");
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   const realPercent =
     votes.total > 0 ? (votes.votes_real / votes.total) * 100 : 0;
   const fakePercent =
     votes.total > 0 ? (votes.votes_fake / votes.total) * 100 : 0;
+
+  // ✅ Always open TinEye homepage (no image URL attached)
+  const tineyeUrl = "https://tineye.com/";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white px-6 py-12">
@@ -116,9 +153,7 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-gray-400">
-                No EXIF metadata available
-              </p>
+              <p className="text-sm text-gray-400">No EXIF metadata available</p>
             )}
           </CardContent>
         </Card>
@@ -233,7 +268,6 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
                 </Badge>
               </p>
 
-              {/* Real Probability */}
               <p className="text-sm mb-2 text-emerald-300">
                 Real Probability:{" "}
                 <span className="font-bold text-emerald-400">
@@ -245,7 +279,6 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
                 className="mb-4 bg-gray-800/60 rounded-full [&>div]:bg-emerald-400"
               />
 
-              {/* Fake Probability */}
               <p className="text-sm mb-2 text-pink-300">
                 Fake Probability:{" "}
                 <span className="font-bold text-pink-400">
@@ -263,7 +296,29 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
         </CardContent>
       </Card>
 
-      {/* Reverse Search */}
+      {/* Reverse Image Search (TinEye Only) */}
+      {data.image_url && tineyeUrl && (
+        <Card className="mt-6 bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <Search className="w-5 h-5 text-blue-400" />
+              <span>Reverse Image Search</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button
+              asChild
+              className="bg-blue-500/30 text-blue-300 hover:bg-blue-500/40"
+            >
+              <a href={tineyeUrl} target="_blank" rel="noopener noreferrer">
+                TinEye
+              </a>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Reverse Matches */}
       {reverseMatches.length > 0 && (
         <Card className="mt-6 bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg">
           <CardHeader>
@@ -318,7 +373,6 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
             </Button>
           </div>
 
-          {/* Real Votes */}
           <p className="text-sm mb-2 text-emerald-300">
             Community thinks this image is Real:{" "}
             <span className="font-bold text-emerald-400">
@@ -330,7 +384,6 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
             className="mb-4 bg-gray-800/60 rounded-full [&>div]:bg-emerald-400"
           />
 
-          {/* Fake Votes */}
           <p className="text-sm mb-2 text-pink-300">
             Community thinks this image is Fake:{" "}
             <span className="font-bold text-pink-400">
@@ -343,6 +396,20 @@ const AnalysisResults = ({ data }: { data?: AnalysisData }) => {
           />
         </CardContent>
       </Card>
+
+      {/* PDF Report Button */}
+      {data.id && (
+        <div className="mt-6 flex justify-center">
+          <Button
+            onClick={handleGeneratePDF}
+            disabled={isGeneratingPDF}
+            className="flex items-center bg-blue-500/30 text-blue-300 hover:bg-blue-500/40"
+          >
+            <FileDown className="w-4 h-4 mr-2" />
+            {isGeneratingPDF ? "Generating..." : "Download PDF Report"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

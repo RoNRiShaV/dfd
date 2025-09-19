@@ -2,10 +2,16 @@ import { Shield, Lock, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-const PrivacySection = () => {
+const PrivacySection = ({ onPrivacyChange }: { onPrivacyChange?: (mode: boolean) => void }) => {
   const [privacyMode, setPrivacyMode] = useState(false);
+
+  useEffect(() => {
+    if (onPrivacyChange) {
+      onPrivacyChange(privacyMode);
+    }
+  }, [privacyMode, onPrivacyChange]);
 
   return (
     <div className="container mx-auto px-6 py-8">
@@ -15,7 +21,7 @@ const PrivacySection = () => {
             <Shield className="w-5 h-5 text-accent-strong" />
             <span>Privacy Controls</span>
             {privacyMode && (
-              <Badge variant="outline" className="border-success text-success ml-auto">
+              <Badge variant="outline" className="border-success text-success ml-auto flex items-center">
                 <Lock className="w-3 h-3 mr-1" />
                 Protected
               </Badge>
@@ -23,6 +29,7 @@ const PrivacySection = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Privacy toggle */}
           <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-accent">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-full bg-accent-strong/20 flex items-center justify-center">
@@ -35,13 +42,14 @@ const PrivacySection = () => {
                 </p>
               </div>
             </div>
-            <Switch 
+            <Switch
               checked={privacyMode}
               onCheckedChange={setPrivacyMode}
               className="data-[state=checked]:bg-success"
             />
           </div>
 
+          {/* Info */}
           <div className="space-y-4 text-sm text-muted-foreground">
             <div className="flex items-start space-x-3">
               <div className="w-2 h-2 rounded-full bg-success mt-1.5"></div>

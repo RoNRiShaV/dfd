@@ -1,11 +1,12 @@
 import os
 import uuid
 import json
+import traceback
 from pathlib import Path
 from datetime import datetime
 from typing import Dict
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Body
+from fastapi import FastAPI, File, UploadFile, HTTPException, Body, Form
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -13,16 +14,16 @@ from fastapi.staticfiles import StaticFiles
 # Pillow for EXIF
 from PIL import Image, ExifTags
 
-# Import pipeline (absolute import to avoid relative import issues)
+# Import pipeline
 from forensics import analyze_image_from_path, DEVICE
-
+from report_util import generate_pdf_report, REPORTS_DIR  # ✅ REPORTS_DIR imported here
 
 # -------------------------------
 # Config / paths
 # -------------------------------
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE_DIR / "uploads"
-HEATMAP_DIR = UPLOAD_DIR / "heatmaps"   # ✅ dedicated heatmap folder
+HEATMAP_DIR = UPLOAD_DIR / "heatmaps"
 LOG_FILE = BASE_DIR / "analysis_log.json"
 
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -43,7 +44,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve static files
+# Static serving
 app.mount("/api/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 app.mount("/api/heatmaps", StaticFiles(directory=str(HEATMAP_DIR)), name="heatmaps")
 
@@ -71,7 +72,6 @@ def update_log(entry: dict):
             logs[i] = entry
             _write_log(logs)
             return
-    # if not found, append
     logs.append(entry)
     _write_log(logs)
 
@@ -102,10 +102,6 @@ def save_upload_file(upload_file: UploadFile, dest: Path) -> Path:
     return out_path
 
 def extract_exif(image_path: str) -> Dict[str, str]:
-    """
-    Extract EXIF metadata using Pillow.
-    Returns a dictionary of tag -> value.
-    """
     try:
         img = Image.open(image_path)
         exif_data = img._getexif()
@@ -119,70 +115,84 @@ def extract_exif(image_path: str) -> Dict[str, str]:
     except Exception:
         return {}
 
+# ✅ Only TinEye homepage (no Bing, no Google Lens)
+def build_reverse_links(file_url: str) -> Dict[str, str]:
+    return {
+        "tineye": "https://tineye.com/"
+    }
+
 # -------------------------------
 # Routes
 # -------------------------------
 @app.post("/api/upload")
-async def upload(file: UploadFile = File(...)):
+async def upload(
+    file: UploadFile = File(...),
+    privacy: bool = Form(False)
+):
     filename_lower = (file.filename or "").lower()
     if not filename_lower.endswith((".png", ".jpg", ".jpeg")):
         raise HTTPException(status_code=400, detail="Invalid image type")
 
-    try:
-        saved_path = save_upload_file(file, UPLOAD_DIR)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Save error: {e}")
+    temp_path = save_upload_file(file, BASE_DIR)
 
-    # ✅ save heatmap in heatmaps/ folder
-    heatmap_out = HEATMAP_DIR / f"{saved_path.stem}_heatmap.png"
     try:
-        result = analyze_image_from_path(str(saved_path), out_heatmap_path=str(heatmap_out))
+        result = analyze_image_from_path(str(temp_path))
     except Exception as e:
+        temp_path.unlink(missing_ok=True)
         raise HTTPException(status_code=500, detail=f"Forensics error: {e}")
 
-    # ✅ extract EXIF metadata
-    exif_data = extract_exif(str(saved_path))
-
+    exif_data = extract_exif(str(temp_path))
     deepfake = result.get("deepfake") or {}
-    real_prob = deepfake.get("real_prob")
-    fake_prob = deepfake.get("fake_prob")
-    authenticity = deepfake.get("authenticity_score")
-    prediction = deepfake.get("prediction")
 
+    if privacy:
+        temp_path.unlink(missing_ok=True)
+        return JSONResponse({
+            "privacy": True,
+            "timestamp": datetime.utcnow().isoformat(),
+            "exif": exif_data,
+            "tamper_score": result.get("tamper_score"),
+            "label": deepfake.get("prediction"),
+            "authenticity": deepfake.get("authenticity_score"),
+            "real_prob": deepfake.get("real_prob"),
+            "fake_prob": deepfake.get("fake_prob"),
+            "prediction": deepfake.get("prediction"),
+        })
+
+    upload_id = uuid.uuid4().hex
+    permanent_filename = f"{upload_id}{Path(file.filename).suffix}"
+    permanent_path = UPLOAD_DIR / permanent_filename
+    os.replace(temp_path, permanent_path)
+
+    heatmap_out = HEATMAP_DIR / f"{upload_id}_heatmap.png"
+    try:
+        analyze_image_from_path(str(permanent_path), out_heatmap_path=str(heatmap_out))
+    except Exception:
+        heatmap_out = None
+
+    file_url = f"/api/uploads/{permanent_filename}"
     entry = {
-        "id": saved_path.name,
+        "id": upload_id,
         "timestamp": datetime.utcnow().isoformat(),
-        "filename": saved_path.name,
-        "file_url": f"/api/uploads/{saved_path.name}",
+        "filename": permanent_filename,
+        "file_url": file_url,
         "phash": result.get("phash"),
-        "exif": exif_data,  # ✅ now filled
+        "exif": exif_data,
         "tamper_score": result.get("tamper_score"),
-        "heatmap_url": f"/api/heatmaps/{heatmap_out.name}" if heatmap_out.exists() else None,
-        "reverse_matches": result.get("reverse_matches", []),
-        "label": prediction,
-        "authenticity": authenticity,
-        "real_prob": real_prob,
-        "fake_prob": fake_prob,
-        "prediction": prediction,
+        "heatmap_url": f"/api/heatmaps/{heatmap_out.name}" if heatmap_out and heatmap_out.exists() else None,
+        "reverse_matches": build_reverse_links(file_url),
+        "label": deepfake.get("prediction"),
+        "authenticity": deepfake.get("authenticity_score"),
+        "real_prob": deepfake.get("real_prob"),
+        "fake_prob": deepfake.get("fake_prob"),
+        "prediction": deepfake.get("prediction"),
         "votes_fake": 0,
         "votes_real": 0,
+        "privacy": False,
     }
 
-    try:
-        append_log(entry)
-    except Exception as e:
-        return JSONResponse(content={**entry, "warning": f"Log error: {e}"})
+    append_log(entry)
+    return JSONResponse(entry)
 
-    return JSONResponse({
-        "id": entry["id"],
-        "filename": entry["filename"],
-        "file_url": entry["file_url"],
-        "label": entry["label"],
-        "authenticity": entry["authenticity"],
-        "real_prob": entry["real_prob"],
-        "fake_prob": entry["fake_prob"],
-        "heatmap_url": entry["heatmap_url"],
-    })
 
 @app.get("/api/result/{file_id}")
 async def get_result(file_id: str):
@@ -191,14 +201,14 @@ async def get_result(file_id: str):
         raise HTTPException(status_code=404, detail="Result not found")
     return entry
 
-# -------------------------------
-# ✅ Community Voting
-# -------------------------------
 @app.post("/api/vote/{file_id}")
 async def vote(file_id: str, vote: str = Body(..., embed=True)):
     entry = find_log_entry(file_id)
     if not entry:
         raise HTTPException(status_code=404, detail="Image not found")
+
+    if entry.get("privacy"):
+        raise HTTPException(status_code=403, detail="Voting disabled for private uploads")
 
     if vote == "real":
         entry["votes_real"] = entry.get("votes_real", 0) + 1
@@ -208,7 +218,6 @@ async def vote(file_id: str, vote: str = Body(..., embed=True)):
         raise HTTPException(status_code=400, detail="Vote must be 'real' or 'fake'")
 
     update_log(entry)
-
     return {
         "votes_real": entry["votes_real"],
         "votes_fake": entry["votes_fake"],
@@ -221,25 +230,51 @@ async def get_votes(file_id: str):
     if not entry:
         raise HTTPException(status_code=404, detail="Image not found")
 
+    if entry.get("privacy"):
+        raise HTTPException(status_code=403, detail="Votes unavailable for private uploads")
+
     return {
         "votes_real": entry.get("votes_real", 0),
         "votes_fake": entry.get("votes_fake", 0),
         "total": entry.get("votes_real", 0) + entry.get("votes_fake", 0),
     }
 
-# -------------------------------
-# ✅ History endpoint
-# -------------------------------
 @app.get("/api/history")
 async def get_history():
     logs = _read_log()
-    # Sort latest first
+    logs = [entry for entry in logs if not entry.get("privacy", False)]
     logs_sorted = sorted(logs, key=lambda x: x.get("timestamp", ""), reverse=True)
     return logs_sorted
 
-# -------------------------------
-# Static serving
-# -------------------------------
+@app.get("/api/report/{file_id}")
+async def generate_report(file_id: str):
+    entry = find_log_entry(file_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Result not found")
+
+    # ✅ Save report into reports folder
+    output_pdf_path = REPORTS_DIR / f"{file_id}_report.pdf"
+    image_path = UPLOAD_DIR / entry["filename"]
+    heatmap_path = HEATMAP_DIR / f"{file_id}_heatmap.png" if entry.get("heatmap_url") else None
+
+    try:
+        print(f"DEBUG: Generating PDF report for {file_id}")
+        print(f"DEBUG: image_path={image_path}, heatmap_path={heatmap_path}")
+        print(f"DEBUG: entry={json.dumps(entry, indent=2)}")
+        generate_pdf_report(
+            str(output_pdf_path),
+            str(image_path),
+            entry,
+            entry.get("exif", {}),
+            str(heatmap_path) if heatmap_path and heatmap_path.exists() else None
+        )
+    except Exception as e:
+        print("ERROR: Failed to generate PDF report")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to generate PDF: {str(e)}")
+
+    return FileResponse(output_pdf_path, media_type="application/pdf", filename=f"{file_id}_report.pdf")
+
 @app.get("/api/uploads/{filename}")
 async def serve_upload(filename: str):
     path = UPLOAD_DIR / filename

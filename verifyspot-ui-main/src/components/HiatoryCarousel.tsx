@@ -4,9 +4,7 @@ import { Progress } from "@/components/ui/progress";
 
 interface HistoryItem {
   id: string;
-  filename: string;
   file_url: string;
-  heatmap_url?: string;
   prediction?: string;
   votes_real?: number;
   votes_fake?: number;
@@ -14,15 +12,39 @@ interface HistoryItem {
 
 const backendBase = "http://localhost:8000";
 
-const HistoryCarousel = () => {
+const HistoryCarousel = ({ privacyMode }: { privacyMode: boolean }) => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
   useEffect(() => {
-    fetch(`${backendBase}/api/history`)
-      .then((res) => res.json())
-      .then((json) => setHistory(json))
-      .catch((err) => console.error("History fetch error:", err));
-  }, []);
+    if (privacyMode) {
+      setHistory([]);
+      return;
+    }
+
+    const fetchHistory = async () => {
+      try {
+        const res = await fetch(`${backendBase}/api/history`);
+        if (res.ok) {
+          const data = await res.json();
+          setHistory(data); // ✅ backend filters out privacy uploads
+        } else {
+          console.error("Failed to fetch history:", res.status);
+        }
+      } catch (err) {
+        console.error("Error fetching history:", err);
+      }
+    };
+
+    fetchHistory();
+  }, [privacyMode]);
+
+  if (privacyMode) {
+    return (
+      <p className="text-muted-foreground italic">
+        Privacy mode enabled — past uploads are hidden.
+      </p>
+    );
+  }
 
   if (history.length === 0) {
     return <p className="text-muted-foreground">No past uploads yet.</p>;
@@ -30,7 +52,9 @@ const HistoryCarousel = () => {
 
   return (
     <div className="mt-12">
-      <h2 className="text-2xl font-bold mb-4">Past Uploads & Community Votes</h2>
+      <h2 className="text-2xl font-bold mb-4">
+        Past Uploads & Community Votes
+      </h2>
       <div className="history-glass flex space-x-4 overflow-x-auto pb-4">
         {history.map((item) => {
           const total = (item.votes_real ?? 0) + (item.votes_fake ?? 0);
